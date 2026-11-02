@@ -1,0 +1,24 @@
+{
+  "name": "@kindling/assets",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Asset pipeline: fal.ai client (Nano Banana, Tripo, ElevenLabs) with cost log, prompt files, sheet slicing and contact sheets, headless Blender modules, credits registry, browser screenshot harness, RL env bridge + PPO trainer + policy runtime",
+  "exports": {
+    ".": "./src/index.ts",
+    "./rl": "./src/rl/index.ts",
+    "./policy": "./src/rl/policy.ts",
+    "./screenshot": "./src/screenshot.ts"
+  },
+  "bin": {
+    "kindling-credits": "./src/cli/credits.ts",
+    "kindling-shots": "./src/cli/shots.ts",
+    "kindling-sheet": "./src/cli/sheet.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "node --experimental-transform-types --no-warnings test/run.ts"
+  },
+  "dependencies": {
+    "playwright-core": "^1.64.1"
+  }
+}

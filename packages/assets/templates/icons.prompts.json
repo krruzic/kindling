@@ -1,0 +1,17 @@
+{
+  "style": "Ability icons from a 1998 Nintendo 64 fantasy game, in the style of Legend of Zelda Ocarina of Time item icons and Banjo-Kazooie menu art. All icons share one consistent palette and painting style.",
+  "itemStyle": "Each icon: chunky, bold, instantly readable silhouette, hand-painted with a few flat saturated colours and simple shading, warm top-left light, thick dark outline, filling most of its cell.",
+  "suffix": "No text, no letters, no numbers, no frames, no borders, no grid lines, no background scenery, no drop shadows. Plain flat pure magenta background (#FF00FF) everywhere.",
+  "background": "#FF00FF",
+  "tier": "pro",
+  "resolution": "2K",
+  "cols": 4,
+  "sheets": {
+    "fire": [
+      ["fireball", "a roaring fireball with a bright yellow core"],
+      ["ember_shield", "a round iron shield glowing with embers"],
+      ["lava_crack", "a glowing lava crack splitting a boulder"],
+      ["phoenix", "a small phoenix feather trailing flames"]
+    ]
+  }
+}

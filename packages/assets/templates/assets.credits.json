@@ -1,0 +1,22 @@
+{
+  "roots": ["assets"],
+  "ignore": ["assets/generated/**"],
+  "entries": [
+    {
+      "path": "assets/sfx/impact.*.ogg",
+      "title": "Impact Sounds",
+      "author": "Kenney",
+      "source": "https://kenney.nl/assets/impact-sounds",
+      "licence": "CC0-1.0"
+    },
+    {
+      "path": "assets/sfx/door.ogg",
+      "title": "Old wooden door",
+      "author": "someone",
+      "source": "https://freesound.org/people/someone/sounds/1/",
+      "licence": "CC-BY-SA-4.0",
+      "modified": "trimmed, normalised, mono"
+    },
+    { "path": "assets/ui/icons/*.png", "title": "Ability icons", "licence": "generated" }
+  ]
+}
