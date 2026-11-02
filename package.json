@@ -1,0 +1,17 @@
+{
+  "name": "kindling",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -b packages/*/ examples/*/ 2>/dev/null || pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "format": "prettier --write \"packages/**/*.{ts,mjs}\" \"examples/**/*.ts\""
+  },
+  "packageManager": "pnpm@11.10.0",
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "prettier": "^3.9.10",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  }
+}
