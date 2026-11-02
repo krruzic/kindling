@@ -1,0 +1,16 @@
+{
+  "name": "@kindling/ui",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Canvas UI layer: virtual-resolution UI canvas, atlas/canvas fonts with fit/wrap, nine-slice and themed panels, layout with overflow debugging, menus, options, prompts, dialogs, cards, callouts, screen stack, split-screen views",
+  "exports": {
+    ".": "./src/index.ts",
+    "./themes/wood": "./src/themes/wood.ts",
+    "./themes/pixel": "./src/themes/pixel.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "node --experimental-transform-types --no-warnings test/run.ts",
+    "demo": "vite demo"
+  }
+}
