@@ -1,9 +1,9 @@
 // Lockstep over the in-memory transport: sync under latency / jitter / reordering, desync detection by section,
 // stalls, drops to CPU, rejoin by replay, late-join spectating, version refusal.
 import { test, ok, eq } from "./harness.ts";
-import { World, type Machine } from "./world.ts";
-import { LockstepGuest, inputDelay, mergeFields, type NetMsg } from "../src/index.ts";
-import { codec, IDLE, Toy, type Cmd, type Spec } from "./toy.ts";
+import { World, coreStyle, type Machine } from "./world.ts";
+import { LockstepGuest, hashRow, inputDelay, mergeFields, sectionNamesOf, type NetMsg } from "../src/index.ts";
+import { codec, IDLE, SECTIONS, Toy, type Cmd, type Spec } from "./toy.ts";
 
 const hashes = (ms: Machine[]) => ms.map((m) => m.sim!.hash());
 const allSame = (xs: number[]) => xs.every((x) => x === xs[0]);
@@ -69,6 +69,24 @@ test("desync injection is detected with the right section", () => {
   eq(w.host.desyncs[0].peer, g.link.id);
   eq(w.host.desyncs[0].sections, ["players"]);
   eq(w.guests[1].desyncs.length, 0);
+});
+
+test("a core-style sim (named sections(), no sectionHashes) is hashed and desyncs are named", () => {
+  const toy = new Toy({ seed: 1, players: 2 });
+  const sim = coreStyle(toy);
+  eq(sectionNamesOf(sim), SECTIONS);
+  eq(hashRow(sim, ["rng", "players"]), [toy.hash() >>> 0, toy.sectionHashes()[2] >>> 0, toy.sectionHashes()[0] >>> 0]);
+  eq(sectionNamesOf(toy), undefined);
+  const w = new World({ seed: 3, guests: [[0], [0]], coreSections: true });
+  w.guests[0].corruptAt = 100;
+  w.run(1500);
+  w.start();
+  w.playTo(200);
+  ok(w.guests[0].desyncs.length > 0, "guest saw the desync");
+  eq(w.guests[0].desyncs[0].sections, ["players"]);
+  eq(w.host.desyncs[0]?.sections, ["players"]);
+  eq(w.guests[1].desyncs.length, 0);
+  eq(w.guests[1].sim!.hash(), w.host.sim!.hash());
 });
 
 test("a stalled guest shows 'waiting for' everywhere, then a CPU takes its seat", () => {

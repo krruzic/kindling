@@ -15,6 +15,8 @@ export {
 export {
   inputDelay,
   resolveDelay,
+  hashRow,
+  sectionNamesOf,
   mergeFields,
   quantize,
   mathPrint,

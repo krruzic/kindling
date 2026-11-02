@@ -12,6 +12,7 @@ import {
   type NetLinkOptions,
   type StallInfo,
   type DesyncReport,
+  type LockstepSim,
 } from "../src/index.ts";
 import { codec, cpuCommand, rng, SECTIONS, Toy, type Cmd, type Spec } from "./toy.ts";
 
@@ -54,6 +55,20 @@ export interface WorldOptions {
   guest?: (i: number) => Partial<LockstepGuestOptions<Cmd, number, Spec>>;
   link?: (i: number) => NetLinkOptions;
   build?: string;
+  /** Hand lockstep core-style sims (named `sections()` only, no `sectionHashes()` and no `sections` option). */
+  coreSections?: boolean;
+}
+
+/** A Toy seen through @kindling/core's Sim shape: named sections() instead of sectionHashes(). */
+export function coreStyle(toy: Toy): LockstepSim<Cmd> {
+  return {
+    step: (c) => toy.step(c),
+    hash: () => toy.hash(),
+    sections: () => {
+      const hs = toy.sectionHashes();
+      return { total: toy.hash(), sections: Object.fromEntries(SECTIONS.map((n, i) => [n, hs[i]])) };
+    },
+  };
 }
 
 const HEROES = ["ash", "birch", "cedar", "dune"];
@@ -90,7 +105,7 @@ export class World {
       codec,
       tickMs: TICK,
       build: opts.build ?? "b1",
-      sections: SECTIONS,
+      sections: opts.coreSections ? undefined : SECTIONS,
       cpu: (seat) => {
         m.cpuSeatsAsked.add(seat);
         return cpuCommand(m.sim!, seat);
@@ -143,7 +158,7 @@ export class World {
       createSim: (spec) => {
         g.sim = new Toy(spec);
         g.sim.corruptAt = g.corruptAt;
-        return g.sim;
+        return this.opts.coreSections ? coreStyle(g.sim) : g.sim;
       },
       onStall: (s) => g.stalls.push(s),
       onDesync: (d) => g.desyncs.push(d),
@@ -222,7 +237,7 @@ export class World {
     const spec: Spec = { seed, players: seats.length };
     this.host.sim = new Toy(spec);
     lobby.setOpen(false);
-    this.host.host!.start(spec, seats, this.host.sim);
+    this.host.host!.start(spec, seats, this.opts.coreSections ? coreStyle(this.host.sim) : this.host.sim);
   }
 
   /** Runs the match until the host has stepped `ticks`, then lets the guests drain every frame. */

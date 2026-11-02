@@ -25,6 +25,27 @@ export interface LockstepSim<Cmd> {
   hash(): number;
   /** Per-section checksums (players, units, rng...), named by the `sections` option, so a desync says where. */
   sectionHashes?(): number[];
+  /**
+   * Or @kindling/core's named form (`Sim.sections()` from `sectionHashes(...)`), so a core Sim plugs in as is.
+   * Used when `sectionHashes` is absent; ordered by the `sections` option, else by the sim's own key order.
+   */
+  sections?(): { total: number; sections: Record<string, number> };
+}
+
+/** Section names a sim reports by itself (core-style `sections()`), or undefined. */
+export function sectionNamesOf(sim: LockstepSim<unknown>): string[] | undefined {
+  return !sim.sectionHashes && sim.sections ? Object.keys(sim.sections().sections) : undefined;
+}
+
+/** A hash row for a sim: [hash, ...section hashes] (uint32), from either section form. */
+export function hashRow(sim: LockstepSim<unknown>, names?: readonly string[]): number[] {
+  const row = [sim.hash() >>> 0];
+  if (sim.sectionHashes) for (const h of sim.sectionHashes()) row.push(h >>> 0);
+  else if (sim.sections) {
+    const s = sim.sections().sections;
+    for (const k of names ?? Object.keys(s)) row.push((s[k] ?? 0) >>> 0);
+  }
+  return row;
 }
 
 /** A seat as the host declares it when starting a match. */

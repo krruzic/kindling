@@ -19,6 +19,8 @@
 //   (feed idle commands for the pausing seat instead).
 import type { NetMsg } from "../protocol.ts";
 import {
+  hashRow,
+  sectionNamesOf,
   resolveDelay,
   mathPrint,
   type CommandCodec,
@@ -41,7 +43,7 @@ export interface LockstepHostOptions<Cmd, Packed> {
   build?: string;
   /** Hash every this many ticks (default 30). */
   hashEvery?: number;
-  /** Names of the sim's sectionHashes(), in order. */
+  /** Names of the sim's sectionHashes(), in order (default: the keys of a core-style sim's sections()). */
   sections?: string[];
   /** Input delay policy (default base 3 + one RTT in ticks, at most 12). */
   delay?: DelayPolicy;
@@ -116,6 +118,7 @@ export class LockstepHost<Cmd, Packed = unknown, Spec = unknown> {
   private stallKey = "";
   private waitSentAt = -1e9;
   private idlePacked: Packed;
+  private sectionNames: string[] | undefined;
 
   constructor(opts: LockstepHostOptions<Cmd, Packed>) {
     this.o = opts;
@@ -141,6 +144,7 @@ export class LockstepHost<Cmd, Packed = unknown, Spec = unknown> {
     this.running = true;
     this.spec = spec;
     this.sim = sim;
+    this.sectionNames = this.o.sections ?? sectionNamesOf(sim);
     this.tick = 0;
     this.frames = [];
     this.hashLog = [];
@@ -181,7 +185,7 @@ export class LockstepHost<Cmd, Packed = unknown, Spec = unknown> {
       delay: this.delay,
       tickMs: this.o.tickMs,
       hashEvery: this.hashEvery,
-      sections: this.o.sections ?? null,
+      sections: this.sectionNames ?? null,
       build: this.o.build ?? "",
       math: this.math,
       resume,
@@ -269,7 +273,7 @@ export class LockstepHost<Cmd, Packed = unknown, Spec = unknown> {
       this.sim.step(cmds);
       this.tick++;
       if (this.tick % this.hashEvery === 0) {
-        const row = [this.tick, this.sim.hash() >>> 0, ...(this.sim.sectionHashes?.() ?? []).map((h) => h >>> 0)];
+        const row = [this.tick, ...hashRow(this.sim, this.sectionNames)];
         this.hashLog.push(row);
         this.outHashes.push(row);
       }

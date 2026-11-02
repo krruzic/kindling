@@ -9,6 +9,7 @@
 import type { NetMsg } from "../protocol.ts";
 import {
   diffSections,
+  hashRow,
   mathPrint,
   type CommandCodec,
   type DesyncReport,
@@ -322,7 +323,7 @@ export class LockstepGuest<Cmd, Packed = unknown, Spec = unknown> {
     if (!host || !this.sim) return;
     this.hostHashes.delete(tick);
     this.stats.hashChecks++;
-    const mine = [this.sim.hash() >>> 0, ...(this.sim.sectionHashes?.() ?? []).map((h) => h >>> 0)];
+    const mine = hashRow(this.sim, this.sections);
     if (mine[0] === host[1]) return;
     const report: DesyncReport = { tick, sections: diffSections(mine, host.slice(1), this.sections) };
     this.stats.desyncs++;
