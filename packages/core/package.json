@@ -1,0 +1,14 @@
+{
+  "name": "@kindling/core",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Deterministic simulation toolkit: seeded RNGs, state hashing, fixed-tick loop, determinism harness, headless sharded runners, perf stats, holiday windows",
+  "exports": {
+    ".": "./src/index.ts",
+    "./node": "./src/node/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "node --experimental-transform-types --no-warnings test/run.ts"
+  }
+}
