@@ -1,0 +1,21 @@
+{
+  "name": "@kindling/net",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Online play: WebSocket room relay (node + Vite plugin), NetLink client, host-authoritative lockstep with hash checks, stalls, drops and rejoin, mirrored lobby, in-memory transport for tests",
+  "exports": {
+    ".": "./src/index.ts",
+    "./relay": "./src/relay/node.ts",
+    "./memory": "./src/memory.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "node --experimental-transform-types --no-warnings test/run.ts"
+  },
+  "dependencies": {
+    "ws": "^8.22.1"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.2"
+  }
+}
