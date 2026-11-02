@@ -155,8 +155,8 @@ export class View {
       maxWidth: 30,
       bounds: { x0: -12, z0: -12, x1: 12, z1: 12 },
       rate: 3,
-      safe: [-0.85, 0.85, -0.42, 0.62],
-      keepHeight: 0.8,
+      safe: [-0.85, 0.85, -0.42, 0.5],
+      keepHeight: 1.6,
     });
   }
 

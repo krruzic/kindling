@@ -76,6 +76,8 @@ export class OnlineSession {
   bots: (Bot | null)[] = [];
   /** Stall overlay info (null: none). */
   stall: StallInfo | null = null;
+  /** World hash every 60 ticks of the current match (tests compare machines). */
+  hashes: Record<number, string> = {};
   /** Events of every tick stepped since the last drain. */
   readonly events: GameEvent[] = [];
   /** Host-side notes and guest-side notes (also passed to opts.note). */
@@ -195,6 +197,7 @@ export class OnlineSession {
       createSim: (spec) => {
         this.spec = spec;
         this.world = new World(spec, this.tuning);
+        this.hashes = {};
         this.events.length = 0;
         this.note({ type: "start", spec });
         return this.world;
@@ -231,6 +234,7 @@ export class OnlineSession {
     });
     this.spec = spec;
     this.world = new World(spec, this.tuning);
+    this.hashes = {};
     this.bots = order.map((slot, k) => (seats[k].kind === "cpu" ? new Bot(k, seed, s.slots[slot].skill) : null));
     this.events.length = 0;
     lobby.setOpen(false);
@@ -308,7 +312,9 @@ export class OnlineSession {
   }
 
   private collect(replaying: boolean): void {
-    if (replaying || !this.world) return;
+    if (!this.world) return;
+    if (this.world.tick % 60 === 0) this.hashes[this.world.tick] = this.world.hash().toString(16);
+    if (replaying) return;
     for (const e of this.world.events) this.events.push(e);
   }
 

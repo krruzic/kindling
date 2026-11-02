@@ -18,6 +18,7 @@ export function onlineScreen(app: App): Screen<Frame> {
     return [
       { id: "host", label: "HOST A ROOM" },
       { id: "code", label: "JOIN BY CODE" },
+      ...(rooms.length ? [] : [{ id: "none", label: "NO OPEN ROOMS YET", disabled: true }]),
       ...rooms.map((r) => ({
         id: `room:${r.code}`,
         label: `${r.code}  ${r.name || "ROOM"}`,

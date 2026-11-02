@@ -2,7 +2,7 @@
 // GameCube adapter and Switch 2 / NSO pads over WebHID, remaps saved in the save, the PadState -> Command mapper
 // (with a per-seat latch so a tap between two ticks is never lost), menu navigation from every device, and glyphs
 // for prompts in the player's own device style.
-import { attachDom, InputManager, MenuNavigator, type KeyboardLayout, type PadState } from "@kindling/input";
+import { attachDom, InputManager, keyLabel, MenuNavigator, type KeyboardLayout, type PadState } from "@kindling/input";
 import { GcAdapter, ProCon2, ProCon2Waker, requestHidPads } from "@kindling/input/hid";
 import type { Glyph, Nav } from "@kindling/ui";
 import { codec } from "../sim/codec.ts";
@@ -190,6 +190,24 @@ export class Controls {
 
   /** Prompt glyph for an action in the style of the device used last (or a seat's device). */
   glyph(action: Action, seat?: number): Glyph {
+    if (action === "left" || action === "right") return this.dirGlyph("x", seat);
+    if (action === "up" || action === "down") return this.dirGlyph("y", seat);
     return this.input.glyph(action, { mode: "auto", seat });
+  }
+
+  /** A direction pair as one glyph: arrows on pads, the two keys of the stick on a keyboard half. */
+  dirGlyph(axis: "x" | "y", seat?: number): Glyph {
+    const g = this.input.glyph("attack", { mode: "auto", seat });
+    if (g.family !== "keyboard")
+      return { label: axis === "x" ? "\u2190\u2192" : "\u2191\u2193", family: g.family, color: "#4a4a56" };
+    const kb = KEYBOARDS.find((k) => Object.values(k.buttons).some((c) => c?.includes(g.source ?? ""))) ?? KEYBOARDS[0];
+    const [a, b] = axis === "x" ? [kb.stick.left[0], kb.stick.right[0]] : [kb.stick.up[0], kb.stick.down[0]];
+    const lab = (c: string) =>
+      keyLabel(c)
+        .replace("LEFT", "\u2190")
+        .replace("RIGHT", "\u2192")
+        .replace("UP", "\u2191")
+        .replace("DOWN", "\u2193");
+    return { label: `${lab(a)}${lab(b)}`, family: "keyboard", color: g.color };
   }
 }

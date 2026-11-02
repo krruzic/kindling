@@ -129,7 +129,8 @@ function drawHud(app: App, world: World, w: number, h: number, ctx: CanvasRender
       id: "hud.clock",
     },
   );
-  // player panels
+  // player panels (hidden under the pause menu, whose footer sits there)
+  if (app.screens.top?.name !== "match" && app.screens.names.includes("pause")) return;
   const n = st.rovers.length;
   const gap = 6;
   const pw = Math.min(104, (w - 20 - gap * (n - 1)) / n);

@@ -1,0 +1,6 @@
+**/node_modules
+**/release
+**/runs
+**/__pycache__
+.git
+.env

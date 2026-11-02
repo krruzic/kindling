@@ -322,17 +322,23 @@ function card(
   }
   // header: chip, P#, name
   chip(ui.ctx, inner.x + 5, inner.y + 6, 4.5, color);
+  const plain = !slot.name || slot.name === `P${i + 1}`;
+  if (!plain)
+    label(
+      ui,
+      `P${i + 1}`,
+      { x: inner.x + 13, y: inner.y, w: 16, h: 12 },
+      { onPanel: true, size: t.metrics.small, color: t.colors.panelDim, id: `c${i}.n` },
+    );
   label(
     ui,
-    `P${i + 1}`,
-    { x: inner.x + 13, y: inner.y, w: 16, h: 12 },
-    { onPanel: true, size: t.metrics.small, color: t.colors.panelDim, id: `c${i}.n` },
-  );
-  label(
-    ui,
-    slot.name || `P${i + 1}`,
-    { x: inner.x + 30, y: inner.y - 1, w: inner.w - 30, h: 14 },
-    { onPanel: true, size: t.metrics.text * 1.05, id: `c${i}.name` },
+    plain ? `PLAYER ${i + 1}` : slot.name,
+    { x: inner.x + (plain ? 13 : 30), y: inner.y - 1, w: inner.w - (plain ? 13 : 30), h: 14 },
+    {
+      onPanel: true,
+      size: t.metrics.text * 1.05,
+      id: `c${i}.name`,
+    },
   );
   const who =
     slot.kind === "cpu"

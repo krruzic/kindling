@@ -29,6 +29,8 @@ const SCREENS: [string, string][] = [
   ["online", "screen=online"],
   ["credits", "screen=credits"],
   ["select", "screen=select&players=3"],
+  ["select-pads", "screen=select&fresh&pads=xbox,ps,gc,switch&join"],
+  ["controls-pads", "screen=controls&pads=ps,gc&device=1"],
   ["name", "screen=name"],
   ["match", "screen=match&players=4&t=9"],
   ["match-xmas", "screen=match&players=3&t=14&holiday=xmas&seed=8"],

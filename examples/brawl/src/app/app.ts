@@ -6,6 +6,7 @@
 //   ?players=N (match / select / results: N seats, CPUs fill the rest)  ?seed=N  ?t=<seconds of match pre-roll>
 //   ?perf (perf overlay)  ?layoutdebug (layout debugger, issues in window.game.layoutIssues)  ?holiday=xmas|none
 //   ?mute  ?room=CODE&name=NAME (join an online room)  ?host=NAME (host one)
+//   ?pads=xbox,ps,switch,gc (fake gamepads) &join (each presses A once: seats on the select screen) ?device=N
 import { FixedLoop, Holidays, PerfMeter, animationFrames, dateRange, drawPerf } from "@kindling/core";
 import { Callouts, HitList, LayoutDebug, ScreenManager, UiCanvas, type Nav, type Theme, type Ui } from "@kindling/ui";
 import { cpuMatch, type CpuMatch } from "../sim/headless.ts";
@@ -29,6 +30,7 @@ import {
   type SelectState,
 } from "./select.ts";
 import { Sound, type Track } from "./sound.ts";
+import { installFakePads } from "./fakepads.ts";
 import { NetLink } from "@kindling/net";
 import { ROOM_KIND } from "../net/session.ts";
 
@@ -103,11 +105,17 @@ export class App {
   time = 0;
   frames = 0;
   ready = false;
+  /** World hash every 60 ticks of the current match (online tests compare machines). */
+  hashes: Record<number, string> = {};
   /** Presentation events of the frame (HUD reads them). */
   readonly frameEvents: GameEvent[] = [];
 
+  private fakePads: ((frame: number) => void) | null = null;
+
   constructor(root: HTMLElement, screens: (app: App) => AppScreens) {
     this.root = root;
+    if (this.params.get("pads"))
+      this.fakePads = installFakePads(this.params.get("pads")!.split(","), this.params.has("join"));
     this.holidays.enabled = !!this.save.data.options.holidays;
     this.s = screens(this);
   }
@@ -206,6 +214,7 @@ export class App {
   }
 
   private beginMatch(spec: MatchSpec): void {
+    this.hashes = {};
     this.attract = null;
     this.showKey = "";
     this.lastSpec = spec;
@@ -228,7 +237,8 @@ export class App {
   }
 
   /** One stepped tick's events -> view, sound, HUD. */
-  present(evs: readonly GameEvent[], _w: World): void {
+  present(evs: readonly GameEvent[], w: World): void {
+    if (w.tick % 60 === 0) this.hashes[w.tick] = w.hash().toString(16);
     this.view.events(evs);
     this.sound.events(evs);
     for (const e of evs) this.frameEvents.push(e);
@@ -317,7 +327,7 @@ export class App {
     };
     const tr = { kind: "none" as const, duration: 0 };
     if (p.get("room") || p.has("host")) {
-      const name = (p.get("name") ?? p.get("host") ?? "GUEST").toUpperCase().slice(0, 8) || "GUEST";
+      const name = this.save.setSeatName(0, p.get("name") ?? p.get("host") ?? "GUEST");
       this.connect(p.get("room") ? "guest" : "host", name, (p.get("room") ?? "").toUpperCase());
       this.screens.reset(this.s.select(), tr);
       return;
@@ -344,7 +354,7 @@ export class App {
         return;
       case "select":
       case "name":
-        this.select = demoSelect();
+        this.select = p.has("fresh") ? newSelect() : demoSelect();
         this.select.slots[0].ready = false;
         this.screens.reset(this.s.select(), tr);
         if (screen === "name") (this.screens.top as unknown as { editName(seat: number): void }).editName(0);
@@ -380,6 +390,7 @@ export class App {
     this.time += dt;
     this.frames++;
     const now = nowS * 1000;
+    this.fakePads?.(this.frames);
     this.controls.poll(nowS);
     const nav = this.controls.menu(nowS);
     t0 = perf.cpu("input", t0);
@@ -462,7 +473,9 @@ export class App {
       online: this.session
         ? { role: this.session.role, state: this.session.link.state, inMatch: this.session.inMatch }
         : null,
-      hash: this.match?.world.hash() ?? 0,
+      hashes: this.session ? this.session.hashes : this.hashes,
+      round: this.match?.world.state.match.round ?? 0,
+      phase: this.match?.world.state.match.phase ?? "",
       winner: this.lastWorld?.state.match.winner ?? this.match?.world.state.match.winner ?? -1,
       layoutIssues: [...this.layoutIssues].map(([k, v]) => `${k} ${v}`),
       holiday: this.holidays.active(),

@@ -125,7 +125,7 @@ export function optionsScreen(app: App): Screen<Frame> {
 
 export function controlsScreen(app: App): Screen<Frame> {
   const input = app.controls.input;
-  let dev = 0;
+  let dev = Number(app.params.get("device") ?? 0);
   const devices = () => input.deviceList();
   const current = () => devices()[Math.min(dev, devices().length - 1)];
   const keyRow = (a: Action): OptionRow => ({
