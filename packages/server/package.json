@@ -1,0 +1,17 @@
+{
+  "name": "@kindling/server",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Production static server (precompressed files, cache headers, SPA routes) with an injected relay on one port; precompress CLI; Docker, compose and deploy templates",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "kindling-serve": "./src/bin/serve.ts",
+    "kindling-precompress": "./src/bin/precompress.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "node --experimental-transform-types --no-warnings test/run.ts"
+  }
+}

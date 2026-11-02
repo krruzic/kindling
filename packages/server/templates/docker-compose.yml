@@ -1,0 +1,17 @@
+# Kindling game service (template). deploy.sh copies this to REMOTE_DIR and writes IMAGE into .env beside it.
+services:
+  game:
+    image: ${IMAGE:?set IMAGE in .env}
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-8080}:8080"
+    environment:
+      PORT: "8080"
+      STATIC_DIR: /app/release
+    volumes:
+      - ./data:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
