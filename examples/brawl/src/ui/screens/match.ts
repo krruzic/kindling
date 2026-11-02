@@ -120,7 +120,11 @@ function drawHud(app: App, world: World, w: number, h: number, ctx: CanvasRender
   const sd = m.ringR < world.t.match.arenaRadius;
   label(
     ui,
-    sd ? "SUDDEN DEATH" : `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`,
+    sd
+      ? "SUDDEN DEATH"
+      : m.phase === "countdown"
+        ? "GET READY"
+        : `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`,
     { x: top.x + 6, y: top.y + 12, w: top.w - 12, h: 11 },
     {
       align: "center",
