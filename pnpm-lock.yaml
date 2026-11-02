@@ -21,6 +21,49 @@ importers:
         specifier: ^8.3.5
         version: 8.3.5(@types/node@26.6.6)
 
+  examples/brawl:
+    dependencies:
+      '@kindling/assets':
+        specifier: workspace:*
+        version: link:../../packages/assets
+      '@kindling/audio':
+        specifier: workspace:*
+        version: link:../../packages/audio
+      '@kindling/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@kindling/input':
+        specifier: workspace:*
+        version: link:../../packages/input
+      '@kindling/net':
+        specifier: workspace:*
+        version: link:../../packages/net
+      '@kindling/save':
+        specifier: workspace:*
+        version: link:../../packages/save
+      '@kindling/server':
+        specifier: workspace:*
+        version: link:../../packages/server
+      '@kindling/three':
+        specifier: workspace:*
+        version: link:../../packages/three
+      '@kindling/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      three:
+        specifier: ^0.186.1
+        version: 0.186.1
+    devDependencies:
+      '@types/three':
+        specifier: ^0.186.0
+        version: 0.186.0
+      '@types/ws':
+        specifier: ^8.18.2
+        version: 8.18.2
+      ws:
+        specifier: ^8.22.1
+        version: 8.22.1
+
   packages/assets:
     dependencies:
       playwright-core:

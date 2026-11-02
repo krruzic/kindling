@@ -1,0 +1,42 @@
+{
+  "duel-scout-brute-11": {
+    "hash": 2599756421,
+    "sections": {
+      "rovers": 2591427529,
+      "match": 1229222172,
+      "rng": 668365892
+    }
+  },
+  "trio-23": {
+    "hash": 323713979,
+    "sections": {
+      "rovers": 1340536019,
+      "match": 583051930,
+      "rng": 2547736160
+    }
+  },
+  "four-way-37": {
+    "hash": 2664457348,
+    "sections": {
+      "rovers": 1595272857,
+      "match": 3942941023,
+      "rng": 2976659125
+    }
+  },
+  "mirror-brutes-5": {
+    "hash": 3499840960,
+    "sections": {
+      "rovers": 3117261278,
+      "match": 3890116494,
+      "rng": 1633764041
+    }
+  },
+  "long-duel-99": {
+    "hash": 2472919665,
+    "sections": {
+      "rovers": 536198626,
+      "match": 1730780318,
+      "rng": 1805328531
+    }
+  }
+}

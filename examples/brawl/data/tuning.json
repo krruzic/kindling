@@ -1,0 +1,85 @@
+{
+  "match": {
+    "tickHz": 60,
+    "winRounds": 3,
+    "countdown": 2.4,
+    "roundOver": 2.6,
+    "suddenDeath": 45,
+    "shrinkFor": 20,
+    "roundCap": 100,
+    "arenaRadius": 10,
+    "arenaMin": 3,
+    "fallKoWindow": 4
+  },
+  "physics": {
+    "radius": 0.72,
+    "friction": 6,
+    "stickDeadzone": 0.18,
+    "turnRate": 12,
+    "bumpRestitution": 0.6,
+    "hitStunPerKb": 0.035,
+    "maxStun": 0.5
+  },
+  "moves": {
+    "attack": {
+      "windup": 0.1,
+      "cooldown": 0.42,
+      "range": 2.4,
+      "cone": 0.55,
+      "knock": 5,
+      "scale": 8,
+      "damage": 9
+    },
+    "dash": {
+      "time": 0.16,
+      "cooldown": 0.95,
+      "ram": 5,
+      "scale": 6,
+      "damage": 6
+    },
+    "special": {
+      "charge": 0.35,
+      "cooldown": 5.5,
+      "radius": 3.3,
+      "knock": 7.5,
+      "scale": 9,
+      "damage": 13,
+      "slow": 0.35
+    }
+  },
+  "rovers": {
+    "scout": {
+      "speed": 7.4,
+      "accel": 15,
+      "mass": 0.85,
+      "dash": 19,
+      "power": 0.95,
+      "slam": 0.9,
+      "dashCd": 0.85
+    },
+    "brute": {
+      "speed": 6.1,
+      "accel": 10,
+      "mass": 1.3,
+      "dash": 15,
+      "power": 1.12,
+      "slam": 1,
+      "dashCd": 1.05
+    },
+    "spark": {
+      "speed": 6.7,
+      "accel": 12,
+      "mass": 1,
+      "dash": 17,
+      "power": 1,
+      "slam": 1.22,
+      "dashCd": 0.95
+    }
+  },
+  "bots": {
+    "think": 10,
+    "thinkSkilled": 4,
+    "reaction": 0.55,
+    "edge": 0.78
+  }
+}

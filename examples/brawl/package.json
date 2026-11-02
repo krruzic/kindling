@@ -1,0 +1,39 @@
+{
+  "name": "@kindling/example-brawl",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "BRAWL: a top-down 3D rover sumo brawler for 1-4 players (couch, online, CPUs), wired through every Kindling package",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build --outDir release --emptyOutDir --logLevel warn",
+    "serve": "pnpm build && node --experimental-transform-types --no-warnings tools/server.ts",
+    "typecheck": "tsc -p .",
+    "test": "node --experimental-transform-types --no-warnings test/run.ts",
+    "determinism": "node --experimental-transform-types --no-warnings tools/determinism.ts",
+    "balance": "node --experimental-transform-types --no-warnings tools/balance.ts",
+    "shots": "node --experimental-transform-types --no-warnings tools/shots.ts",
+    "online-test": "node --experimental-transform-types --no-warnings tools/online-test.ts",
+    "env-smoke": "node --experimental-transform-types --no-warnings tools/env-smoke.ts",
+    "credits": "node --experimental-transform-types --no-warnings ../../packages/assets/src/cli/credits.ts validate assets.credits.json",
+    "sfx": "node --experimental-transform-types --no-warnings tools/make-sfx.ts",
+    "parts": "nice -n 10 blender -b --factory-startup -P tools/parts.py -- public/parts"
+  },
+  "dependencies": {
+    "@kindling/assets": "workspace:*",
+    "@kindling/audio": "workspace:*",
+    "@kindling/core": "workspace:*",
+    "@kindling/input": "workspace:*",
+    "@kindling/net": "workspace:*",
+    "@kindling/save": "workspace:*",
+    "@kindling/server": "workspace:*",
+    "@kindling/three": "workspace:*",
+    "@kindling/ui": "workspace:*",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "@types/ws": "^8.18.2",
+    "ws": "^8.22.1"
+  }
+}
