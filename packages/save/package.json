@@ -1,0 +1,13 @@
+{
+  "name": "@kindling/save",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Versioned localStorage saves: schema defaults, migrations, option rows, player names, records tables",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "node --experimental-transform-types --no-warnings test/run.ts"
+  }
+}
