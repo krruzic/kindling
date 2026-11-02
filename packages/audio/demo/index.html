@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="data:," />
+    <title>@kindling/audio demo</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #14100c;
+        color: #f0e0c0;
+        font:
+          15px/1.4 system-ui,
+          sans-serif;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 12px;
+      }
+      section {
+        margin: 14px 0;
+      }
+      button {
+        background: #3a2814;
+        color: #f0e0c0;
+        border: 1px solid #8a6438;
+        border-radius: 4px;
+        padding: 6px 12px;
+        margin: 3px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #5a3c1c;
+      }
+      label {
+        margin-right: 16px;
+      }
+      #status {
+        font-family: monospace;
+        color: #e8c860;
+      }
+      canvas {
+        width: 100%;
+        max-width: 900px;
+        border: 1px solid #5a4028;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>@kindling/audio</h1>
+    <div id="status">click anything to unlock</div>
+    <section>
+      <b>Voices</b>
+      <button data-a="hit">hit (3 variants, jitter)</button>
+      <button data-a="burst">burst of 60 (budget 24)</button>
+      <button data-a="priority">priority coin</button>
+      <button data-a="blip">tone blips</button>
+      <button data-a="whoosh">hiss sweep</button>
+    </section>
+    <section>
+      <b>Loops</b>
+      <button data-a="loopDur">loop with dur 2 s (stops itself)</button>
+      <button data-a="loopOpen">open loop</button>
+      <button data-a="stopLoops">stopLoops()</button>
+    </section>
+    <section>
+      <b>Ambience / music</b>
+      <button data-a="beds">wind bed</button>
+      <button data-a="quiet">ambience off</button>
+      <button data-a="calm">music: calm</button>
+      <button data-a="battle">music: battle</button>
+      <button data-a="musicOff">music off</button>
+      <button data-a="duck">duck music + ambience</button>
+    </section>
+    <section>
+      <label>sfx <input data-level="sfx" type="range" min="0" max="1" step="0.05" value="1" /></label>
+      <label>music <input data-level="music" type="range" min="0" max="1" step="0.05" value="0.5" /></label>
+      <label>ambience <input data-level="ambience" type="range" min="0" max="1" step="0.05" value="1" /></label>
+    </section>
+    <section>
+      <b>Split-screen hearing</b>: click to place a hit in the world (x = -50..150)
+      <canvas id="strip" width="900" height="80"></canvas>
+    </section>
+    <script type="module" src="./demo.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "@kindling/audio",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "WebAudio engine: sample bank with variants, voice budget with priority, buses and ducking, synth blips, split-screen spatial hearing, ambience beds and positional loops, per-screen music with crossfade",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "node --experimental-transform-types --no-warnings test/run.ts",
+    "demo": "vite demo"
+  }
+}
