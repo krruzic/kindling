@@ -1,11 +1,11 @@
-// Renders BRAWL's sound effects to public/sfx/<id>.<variant>.wav from the recipes in src/audio/synth.ts
+// Renders BRAWL's sound effects to assets/sfx/<id>.<variant>.wav from the recipes in src/audio/synth.ts
 // (procedural: no samples to license, no generation credit). Rerun after changing a recipe: pnpm sfx
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { normalise, render, seamless, sfxRecipes, wav } from "../src/audio/synth.ts";
 
 const RATE = 22050;
-const out = fileURLToPath(new URL("../public/sfx/", import.meta.url));
+const out = fileURLToPath(new URL("../assets/sfx/", import.meta.url));
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 let bytes = 0;

@@ -1,6 +1,7 @@
 // Runs every brawl test file.
 import "./sim.test.ts";
 import "./online.test.ts";
+import "./save.test.ts";
 import { run } from "./harness.ts";
 
 await run();

@@ -1,0 +1,25 @@
+{
+  "roots": ["assets", "public"],
+  "ignore": [],
+  "entries": [
+    {
+      "path": "assets/ui/fonts/*",
+      "title": "Barlow Semi Condensed Bold",
+      "author": "Jeremy Tribby",
+      "source": "https://github.com/jpt/barlow",
+      "licence": "OFL-1.1",
+      "modified": false
+    },
+    {
+      "path": "assets/ui/font.*",
+      "title": "Barlow atlas font",
+      "author": "Jeremy Tribby",
+      "source": "https://github.com/jpt/barlow",
+      "licence": "OFL-1.1",
+      "modified": "baked to a glyph atlas by tools/font.py"
+    },
+    { "path": "assets/sfx/*.wav", "title": "Sound effects and beds (tools/make-sfx.ts)", "licence": "generated" },
+    { "path": "public/parts/*.glb", "title": "Rover parts (tools/parts.py, Blender)", "licence": "generated" },
+    { "path": "public/parts/thumbs/*.png", "title": "Rover part thumbnails (tools/parts.py)", "licence": "generated" }
+  ]
+}
