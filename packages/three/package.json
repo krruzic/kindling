@@ -1,0 +1,23 @@
+{
+  "name": "@kindling/three",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "three.js helpers: asset cache, socket assembly, team dyeing, animation controller, instanced particles, glow, weather, string lights, decals, follow/arena cameras, adaptive resolution, render stats",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "node --experimental-transform-types --no-warnings test/run.ts",
+    "demo": "vite demo",
+    "demo:shots": "node --experimental-transform-types --no-warnings demo/shots.ts"
+  },
+  "peerDependencies": {
+    "three": ">=0.170.0"
+  },
+  "devDependencies": {
+    "@kindling/assets": "workspace:*",
+    "@types/three": "^0.186.0",
+    "three": "^0.186.1"
+  }
+}
