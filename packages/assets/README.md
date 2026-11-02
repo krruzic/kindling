@@ -28,7 +28,7 @@ See [docs/LESSONS.md](../../docs/LESSONS.md):
 | `prompts.ts`     | `PromptFile` (style, itemStyle, suffix, background, tier, aspect, resolution, seed, cols, references, items, sheets), `loadPromptFile`, `validatePromptFile`, `sheetPrompt`, `itemPrompt`, `sheetLayout`, `sheetAspect`                                                                                                        |
 | `sheets.ts`      | `generateSheet(fal, file, name, dir)` (raw PNG + layout JSON + meta; skips existing), `sliceSheet(opts)`, `contactSheet(opts)` (both run `python/sheets.py`)                                                                                                                                                                   |
 | `credits.ts`     | `CreditsFile` (`assets.credits.json`: roots, ignore, entries), `validateCredits(file, base, { publicBuild })`, `formatAttribution`, `LICENCES`, `globToRegExp`                                                                                                                                                                 |
-| `screenshot.ts`  | `screenshots({ targets, out, sizes, waitFor, settleMs, chromium, ignore })` -> `{ files, problems }` (console errors, page errors, failed requests, timeouts per shot); `DEFAULT_SIZES`, `findChromium`                                                                                                                        |
+| `screenshot.ts`  | `screenshots({ targets, out, sizes, waitFor, settleMs, check, chromium, ignore })` -> `{ files, problems, data }` (console errors, page errors, failed requests, timeouts, and `check`: the page's own problem list per shot, e.g. `window.game.layoutIssues`); `DEFAULT_SIZES`, `findChromium`                                                                                                                        |
 | `rl/protocol.ts` | `serveEnv(spec, make, { nenv, seed, io })`, `RlEnv` (`reset(seed)`, `observe(out, offset)`, `step(actions) -> { reward, done, result }`), `EnvSpec` (`obs`, `heads`, `meta`)                                                                                                                                                   |
 | `rl/client.ts`   | `EnvClient(cmd, args, env)`: spawns a server, reads its INFO spec, `reset()`, `step(actions)`, `close()`                                                                                                                                                                                                                       |
 | `rl/policy.ts`   | `Policy(json)`: `forward(obs)` (logits per head), `act(obs, rand?)`; `argmax`, `softmax`, `sample`                                                                                                                                                                                                                             |
@@ -46,7 +46,7 @@ kindling-sheet cut prompts.json raw/ icons/ --size 96 --quantize 5 --alpha hard 
 kindling-sheet cost raw/                             # spend so far
 kindling-credits validate assets.credits.json [--public]
 kindling-credits attribution assets.credits.json > CREDITS.md
-kindling-shots http://localhost:5173/?bots=1 --sizes 1920x1080,1280x720,1440x900 --wait "window.game?.ready" --contact shots/contact.png
+kindling-shots http://localhost:5173/?bots=1 --sizes 1920x1080,1280x720,1440x900 --wait "window.game?.ready" --check "window.game.layoutIssues" --contact shots/contact.png
 ```
 
 Templates: `templates/icons.prompts.json`, `templates/assets.credits.json`.

@@ -16,7 +16,9 @@ See [docs/LESSONS.md § Input](../../docs/LESSONS.md#input). In short:
 - **Remaps per device, never a trap.** Saved per Gamepad id / adapter port, applied again on reconnect. A guided
   remap can't lock out a player with one controller: hold any button to skip (or cancel), and it times out.
 - **Prompts show the game's letters.** After a remap Grudge showed "BTN 11" in every footer and players hated it.
-  `glyph()` returns the game's own label by default; physical labels only on request (e.g. a controller page).
+  `glyph()` returns the game's own label by default; physical labels only on request (e.g. a controller page);
+  `mode: "auto"` shows the bound button's own face when it is a known button of that pad (CROSS on PlayStation)
+  and falls back to the game's letter otherwise, which is what footers want.
 - **A raw readout saves evenings.** When "my controller doesn't work", `debug()` shows every raw button / axis and
   each trigger's rest, threshold and ignored channel.
 

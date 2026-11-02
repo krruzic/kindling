@@ -24,7 +24,7 @@ and what was changed. Each fix has a test in its package.
   keys in the controller page and footers were unreadable. Keyboard glyphs now carry the keycap colour (`KEYCAP`,
   light). Same test.
 - **The menu press that opened the select screen also seated its device.** Seats were taken while a button was
-  *held* with `joining` on, so pressing Enter on "LOCAL PLAY" put the right keyboard half in seat 1 before anyone
+  _held_ with `joining` on, so pressing Enter on "LOCAL PLAY" put the right keyboard half in seat 1 before anyone
   pressed anything. Turning `joining` on now makes every held device let go first (`joining` is an accessor).
   Test: "seats: a button held when joining turns on (the menu press that opened the screen) doesn't seat".
 
@@ -52,3 +52,17 @@ and what was changed. Each fix has a test in its package.
   `DRACOLoader`, `KTX2Loader` and their wasm. The options are replaced by a `setup(loader)` hook that runs once
   before the first load; a game that wants DRACO / KTX2 imports them there itself. BRAWL's `release/` lost 1.9 MB.
   Test: "AssetCache: setup configures the loader once, before the first load".
+
+## @kindling/server
+
+- **The documented relay wiring didn't exist.** The README and `server.ts` showed `new NetRelay()` and
+  `relay.route(req, res)`; `@kindling/net/relay` exports `createRelay()` with `handleRequest` / `attach`. Fixed the
+  docs; `examples/brawl/tools/server.ts` is the working wiring, and `pnpm -C examples/brawl online-test --prod`
+  plays a real two-page online match through it (static build + relay on one port).
+
+## Smaller things noticed (left as they are)
+
+- `@kindling/input`'s `MenuNavigator` and `@kindling/ui`'s `NavRepeater` both do key repeat; a game uses one and
+  maps its output to ui's `Nav` (four lines in `examples/brawl/src/app/controls.ts`).
+- `drawPerf` (core) draws in canvas pixels; on a UI canvas with a layout transform, reset the transform first.
+- `Memo` panels can't report to the layout debugger on cached frames; record their rects outside the paint.

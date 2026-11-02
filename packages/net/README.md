@@ -100,10 +100,12 @@ interface LockstepSim<Cmd> {
   step(cmds: Cmd[]): void; // one command per seat
   hash(): number;
   sectionHashes?(): number[]; // named by the `sections` option
+  sections?(): { total: number; sections: Record<string, number> }; // or @kindling/core's form: a core Sim plugs in as is
 }
 ```
 
-`mergeFields(queue, last, idle, ["moveX", "moveY", "block"])` is a ready-made merge for object commands (listed
+With a core-style `sections()` the host takes the section names from the sim (no `sections` option needed) and sends
+them to guests; `hashRow(sim, names)` / `sectionNamesOf(sim)` are the helpers. `mergeFields(queue, last, idle, ["moveX", "moveY", "block"])` is a ready-made merge for object commands (listed
 fields from the newest input, every other field's first truthy value), `quantize()` rounds sticks, `inputDelay()`
 is the default delay policy (3 + one RTT in ticks, at most 12), `mathPrint()` fingerprints the engine's float math.
 

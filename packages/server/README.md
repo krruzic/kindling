@@ -46,13 +46,13 @@ A game's `tools/server.ts` (the `SERVER_ENTRY` of the Dockerfile):
 
 ```ts
 import { serve } from "@kindling/server";
-import { NetRelay } from "@kindling/net/relay";
+import { createRelay } from "@kindling/net/relay";
 
-const relay = new NetRelay();
+const relay = createRelay();
 await serve({
   root: process.env.STATIC_DIR ?? "release",
   routes: { "/": "/site/index.html", "/play": "/index.html", "/play/*": "/index.html" },
-  route: (req, res) => relay.route(req, res),
+  route: (req, res) => relay.handleRequest(req, res),
   attachRelay: (server) => relay.attach(server),
   log: console.log,
 });

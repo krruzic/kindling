@@ -1,10 +1,10 @@
 // The production server: static files and the online relay on one port in one node process, so one container
 // serves the whole game. The relay is injected (`attachRelay(server)` installs its own upgrade handler, `route`
 // answers its HTTP endpoints such as the room list), so this package doesn't depend on @kindling/net:
-//   import { NetRelay } from "@kindling/net/relay";
-//   const relay = new NetRelay();
+//   import { createRelay } from "@kindling/net/relay";
+//   const relay = createRelay();
 //   await serve({ root: "release", routes: { "/": "/site/index.html", "/play": "/index.html" },
-//     route: (req, res) => relay.route(req, res), attachRelay: (s) => relay.attach(s) });
+//     route: (req, res) => relay.handleRequest(req, res), attachRelay: (s) => relay.attach(s) });
 // WebSocket upgrades on any other path are refused (sockets destroyed), as in Grudge.
 import { createServer as httpServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
