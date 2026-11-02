@@ -178,6 +178,15 @@ test("glyphs: game letters by default, physical on request, keys on keyboards", 
   input.bind("pad-0", "jump", "b3");
   eq(input.glyph("jump").label, "A", "remap doesn't change game-letter prompts");
   eq(input.glyph("jump", { mode: "physical" }).label, "TRIANGLE");
+  eq(input.glyph("jump", { mode: "auto" }).label, "TRIANGLE", "auto: the bound button's face");
+  eq(input.glyph("jump", { mode: "auto" }).shape, "triangle");
+  input.bind("pad-0", "jump", "b16");
+  eq(input.glyph("jump", { mode: "physical" }).label, "PS");
+  input.bind("pad-0", "jump", "a2+");
+  eq(input.glyph("jump", { mode: "physical" }).kind, "button", "an unknown source still shows its raw id");
+  eq(input.glyph("jump", { mode: "auto" }), { label: "A", color: "#2f5fd8", family: "playstation", kind: "game" });
+  eq(input.glyph("jump", { mode: "auto", device: "nope", family: "xbox" }).label, "A", "auto without a device");
+  eq(input.glyph("jump", { mode: "auto", device: "nope", family: "gc" }).color, "#1fa37a");
   input.keyboard.keyDown("Space");
   step();
   eq(input.lastDevice, "keyboard-1");

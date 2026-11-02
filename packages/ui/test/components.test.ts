@@ -431,3 +431,15 @@ test("card: auto height grows with the body; maxH caps it", () => {
   ok(icon.icon !== null && icon.h >= icon.icon.h);
   ok(icon.title.x > icon.icon!.x + icon.icon!.w);
 });
+
+// ── Prompt glyphs ──
+
+test("glyphs: input's 'gc' family and shape field draw like gamecube / PlayStation symbols", async () => {
+  const { glyphColor, defaultGlyphWidth } = await import("../src/components/prompts.ts");
+  const t = fakeUi().theme;
+  eq(glyphColor({ label: "A", family: "gc" }), glyphColor({ label: "A", family: "gamecube" }));
+  eq(glyphColor({ label: "A", family: "gc" }), "#2fa864");
+  eq(defaultGlyphWidth({ label: "CROSS", family: "playstation" }, 10, t), 10, "symbol by label");
+  eq(defaultGlyphWidth({ label: "TRIANGLE", family: "playstation", shape: "triangle" }, 10, t), 10, "symbol by shape");
+  ok(defaultGlyphWidth({ label: "TRIANGLE", family: "xbox" }, 10, t) > 10, "a long label is a pill");
+});

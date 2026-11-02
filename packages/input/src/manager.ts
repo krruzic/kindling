@@ -103,8 +103,12 @@ export interface Glyph {
 }
 
 export interface GlyphOptions {
-  /** "game" (default): the game's letters on pads; "physical": the bound button's own label. */
-  mode?: "game" | "physical";
+  /**
+   * "game" (default): the game's letters on pads; "physical": the bound button's own label; "auto": the bound
+   * button's face when it is a known button of the pad (CROSS on a PlayStation pad, A on Xbox, the east A on a
+   * Switch pad), else the game's letter (never "BTN 11" after a remap onto an unknown button).
+   */
+  mode?: "game" | "physical" | "auto";
   /** Whose binding (default: the device used last). */
   seat?: number;
   device?: string;
@@ -587,7 +591,18 @@ export class InputManager<A extends string> {
         ? { label: keyLabel(code), color: familyColor("keyboard", ""), family, kind: "key", source: code }
         : { label: "-", color: familyColor("keyboard", ""), family, kind: "none" };
     }
-    if ((o.mode ?? "game") === "game") {
+    const mode = o.mode ?? "game";
+    if (mode === "auto") {
+      if (d) {
+        const id = this.bindingsOf(d)[action][0];
+        const b = id ? d.sources.get(id)?.button : undefined;
+        if (b) return { ...buttonFace(family, b), family, kind: "button", source: id };
+      } else {
+        const b = this.familyDefaults(family)[action]?.[0];
+        if (b) return { ...buttonFace(family, b), family, kind: "button" };
+      }
+    }
+    if (mode === "game" || mode === "auto") {
       const l = this.labels[action];
       return { label: l?.label ?? action.toUpperCase(), color: l?.color ?? "#5a5a64", family, kind: "game" };
     }

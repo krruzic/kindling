@@ -13,9 +13,14 @@ import type { HitList } from "./nav.ts";
 /** A button glyph the game passes in (from its input layer): the label to show, the device family to style it. */
 export interface Glyph {
   label: string;
-  /** "keyboard", "mouse", "xbox", "playstation", "switch", "gamecube", "generic"... unknown families draw generic. */
+  /**
+   * "keyboard", "mouse", "xbox", "playstation", "switch", "gamecube" (or @kindling/input's "gc"), "generic"...
+   * unknown families draw generic.
+   */
   family: string;
   color?: string;
+  /** Symbol to draw instead of the label (PlayStation face buttons; @kindling/input glyphs carry it). */
+  shape?: "cross" | "circle" | "square" | "triangle";
 }
 
 export interface PanelOpts {

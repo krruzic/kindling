@@ -11,9 +11,11 @@ export interface PromptItem {
   label: string;
 }
 
+const GAMECUBE = { A: "#2fa864", B: "#d43a32", X: "#9a9aa8", Y: "#9a9aa8", Z: "#6a4ac8", START: "#8a8a98" };
 const FAMILY_COLORS: Record<string, Record<string, string>> = {
   xbox: { A: "#3f9b36", B: "#c8352b", X: "#2f63d6", Y: "#d8a91b" },
-  gamecube: { A: "#2fa864", B: "#d43a32", X: "#9a9aa8", Y: "#9a9aa8", Z: "#6a4ac8", START: "#8a8a98" },
+  gamecube: GAMECUBE,
+  gc: GAMECUBE,
   switch: {},
 };
 
@@ -46,6 +48,7 @@ const PS_SYMBOLS: Record<string, "cross" | "circle" | "square" | "triangle"> = {
 const PS_COLORS = { cross: "#7aa8f0", circle: "#f07078", square: "#e08ad8", triangle: "#50d0b0" };
 
 function psSymbol(g: Glyph): "cross" | "circle" | "square" | "triangle" | null {
+  if (g.shape) return g.shape;
   return g.family === "playstation" ? (PS_SYMBOLS[g.label.toUpperCase()] ?? PS_SYMBOLS[g.label] ?? null) : null;
 }
 
