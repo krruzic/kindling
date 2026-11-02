@@ -1,6 +1,7 @@
 // glTF asset cache: each URL loads once (concurrent requests share the in-flight promise), instances are deep
-// clones (SkeletonUtils, so skinned meshes get their own skeletons). DRACO and KTX2 are optional and loaded lazily
-// only when configured. loadOr() never rejects: a missing or broken file logs a warning and returns a placeholder,
+// clones (SkeletonUtils, so skinned meshes get their own skeletons). DRACO / KTX2 are wired by the game in `setup`
+// (so a build that doesn't use them doesn't ship their decoders: a dynamic import here made every game's bundle
+// carry ~1.8 MB of DRACO and Basis wasm). loadOr() never rejects: a missing or broken file logs a warning and returns a placeholder,
 // so the game always runs (RUST RING builds procedural stand-ins from the same socket contract).
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -8,10 +9,14 @@ import { clone as skeletonClone } from "three/examples/jsm/utils/SkeletonUtils.j
 
 export interface AssetCacheOptions {
   manager?: THREE.LoadingManager;
-  /** Path to the DRACO decoder files (e.g. "/draco/"); unset = no DRACO support. */
-  dracoPath?: string;
-  /** Path to the Basis transcoder (e.g. "/basis/") and the renderer to detect support with; unset = no KTX2. */
-  ktx2?: { transcoderPath: string; renderer: THREE.WebGLRenderer };
+  /**
+   * Configures the GLTFLoader before the first load, e.g. DRACO / KTX2 (imported by the game only if it uses them):
+   *   setup: async (l) => {
+   *     const { DRACOLoader } = await import("three/examples/jsm/loaders/DRACOLoader.js");
+   *     l.setDRACOLoader(new DRACOLoader().setDecoderPath("/draco/"));
+   *   }
+   */
+  setup?: (loader: GLTFLoader) => void | Promise<void>;
   /** Called on every loaded scene before caching (material conversion, shadows, merging...). */
   prepare?: (scene: THREE.Group, gltf: GLTF) => void;
 }
@@ -28,17 +33,7 @@ export class AssetCache {
   }
 
   private async configure(): Promise<void> {
-    if (this.o.dracoPath) {
-      const { DRACOLoader } = await import("three/examples/jsm/loaders/DRACOLoader.js");
-      const d = new DRACOLoader();
-      d.setDecoderPath(this.o.dracoPath);
-      this.loader.setDRACOLoader(d);
-    }
-    if (this.o.ktx2) {
-      const { KTX2Loader } = await import("three/examples/jsm/loaders/KTX2Loader.js");
-      const k = new KTX2Loader().setTranscoderPath(this.o.ktx2.transcoderPath).detectSupport(this.o.ktx2.renderer);
-      this.loader.setKTX2Loader(k);
-    }
+    await this.o.setup?.(this.loader);
   }
 
   /** Loads (once) and returns the glTF. Rejects on failure (and forgets it, so a retry reloads). */

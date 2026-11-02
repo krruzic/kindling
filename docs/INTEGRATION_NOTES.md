@@ -40,3 +40,11 @@ and what was changed. Each fix has a test in its package.
   the page's own problem list (e.g. `window.game.layoutIssues`); each entry becomes a `"check"` problem. Non-list
   results are kept in the new `ShotReport.data`. Test: "screenshot harness: sizes, predicate, console errors, page
   checks".
+
+## @kindling/three
+
+- **Every game's build shipped ~1.8 MB of DRACO and Basis decoders it never loaded.** `AssetCache` reached them
+  through a dynamic `import()` behind its `dracoPath` / `ktx2` options, so the bundler always emitted
+  `DRACOLoader`, `KTX2Loader` and their wasm. The options are replaced by a `setup(loader)` hook that runs once
+  before the first load; a game that wants DRACO / KTX2 imports them there itself. BRAWL's `release/` lost 1.9 MB.
+  Test: "AssetCache: setup configures the loader once, before the first load".

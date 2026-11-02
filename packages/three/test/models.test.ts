@@ -140,6 +140,26 @@ test("AssetCache.loadOr: a missing file gives the placeholder, never rejects", a
   }
 });
 
+test("AssetCache: setup configures the loader once, before the first load (DRACO / KTX2 are the game's import)", async () => {
+  const seen: string[] = [];
+  const c = new AssetCache({
+    setup: async (loader) => {
+      await Promise.resolve();
+      seen.push(loader.constructor.name);
+    },
+  });
+  const gltf = JSON.stringify({
+    asset: { version: "2.0" },
+    scenes: [{ nodes: [0] }],
+    scene: 0,
+    nodes: [{ name: "n" }],
+  });
+  const g = await c.parse("mem", gltf);
+  await c.parse("mem2", gltf);
+  eq(seen.join(), "GLTFLoader", "setup ran once before parsing");
+  eq(g.scene.children[0]?.name, "n");
+});
+
 test("mergeStatic: one mesh per material, world transforms baked", () => {
   const a = new THREE.MeshBasicMaterial();
   const b = new THREE.MeshBasicMaterial();
