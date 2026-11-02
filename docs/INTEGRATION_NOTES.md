@@ -23,6 +23,10 @@ and what was changed. Each fix has a test in its package.
   (meant as text ink), but every prompt painter (ui's default included) uses a glyph's colour as the keycap, so
   keys in the controller page and footers were unreadable. Keyboard glyphs now carry the keycap colour (`KEYCAP`,
   light). Same test.
+- **The menu press that opened the select screen also seated its device.** Seats were taken while a button was
+  *held* with `joining` on, so pressing Enter on "LOCAL PLAY" put the right keyboard half in seat 1 before anyone
+  pressed anything. Turning `joining` on now makes every held device let go first (`joining` is an accessor).
+  Test: "seats: a button held when joining turns on (the menu press that opened the screen) doesn't seat".
 
 ## @kindling/ui
 

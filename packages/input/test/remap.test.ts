@@ -191,7 +191,11 @@ test("glyphs: game letters by default, physical on request, keys on keyboards", 
   step();
   eq(input.lastDevice, "keyboard-1");
   eq(input.glyph("jump"), { label: "SPACE", color: KEYCAP, family: "keyboard", kind: "key", source: "Space" });
-  eq(input.glyph("jump", { mode: "auto" }).color, KEYCAP, "keys are light caps (a dark cap made the legend unreadable)");
+  eq(
+    input.glyph("jump", { mode: "auto" }).color,
+    KEYCAP,
+    "keys are light caps (a dark cap made the legend unreadable)",
+  );
   eq(input.glyph("attack").kind, "none");
   eq(
     input.glyph("jump", { family: "switch", device: "nope", mode: "physical" }).label,

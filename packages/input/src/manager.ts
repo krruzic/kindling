@@ -163,8 +163,22 @@ export class InputManager<A extends string> {
   readonly players: PadState<A>[];
   readonly keyboard: KeyboardInput;
   readonly remaps: RemapStore;
-  /** Seat new devices on a press. */
-  joining = true;
+  private joinOn = true;
+
+  /**
+   * Seat new devices on a press. Turning it on makes every button already held wait for a let-go first: the press
+   * that opened a select screen ("A" on a menu item) must not also seat that device.
+   */
+  get joining(): boolean {
+    return this.joinOn;
+  }
+
+  set joining(v: boolean) {
+    if (v && !this.joinOn)
+      for (const [h, d] of this.devs)
+        if (!this.seats.includes(h) && (d.anyOn() || this.wantsSeat(d))) this.waitRelease.add(h);
+    this.joinOn = v;
+  }
   /** Seats a new device may not take (e.g. an online guest sits there). */
   blocked: boolean[] = [];
   /** Keyboard halves take part at all. */

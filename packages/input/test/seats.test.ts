@@ -35,6 +35,24 @@ test("seats: press any button to join; join press doesn't act", () => {
   ]);
 });
 
+test("seats: a button held when joining turns on (the menu press that opened the screen) doesn't seat", () => {
+  const { input, pads, step } = setup();
+  input.joining = false;
+  const a = new FakePad(XBOX_ID, 0);
+  pads.push(a);
+  step();
+  a.press(0);
+  step();
+  input.joining = true;
+  step(3);
+  eq(input.seatOf("pad-0"), -1, "still held from the menu");
+  a.up(0);
+  step();
+  a.press(0);
+  step();
+  eq(input.seatOf("pad-0"), 0, "a fresh press joins");
+});
+
 test("seats: joinPressCounts lets the join press act", () => {
   const { input, pads, step } = setup({ joinPressCounts: true });
   const a = new FakePad(XBOX_ID, 0);
