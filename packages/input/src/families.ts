@@ -178,9 +178,15 @@ export function buttonFace(family: PadFamily, b: PadButton): ButtonFace {
   return face;
 }
 
-/** Colour a family draws a physical button label in (for labels that came from elsewhere, e.g. a remap). */
+/** Keycap colour of keyboard glyphs (a light cap with a dark legend, as every prompt painter draws keys). */
+export const KEYCAP = "#e8e4dc";
+
+/**
+ * Colour of a physical button (for labels that came from elsewhere, e.g. a remap): the button's own colour on a
+ * pad, the keycap colour on a keyboard.
+ */
 export function familyColor(family: PadFamily, label: string): string {
-  if (family === "keyboard") return "#3a3a44";
+  if (family === "keyboard") return KEYCAP;
   const fam = family === "generic" ? "generic" : family;
   const b = (Object.keys(LABELS[fam]) as PadButton[]).find((k) => LABELS[fam][k] === label);
   return b ? buttonFace(family, b).color : GREY;

@@ -1,6 +1,6 @@
 // Remaps: defaults per family, rebinding (swap), save through hooks, apply on reconnect, guided sessions with
 // hold-to-skip and timeout, glyphs.
-import { HOLD_SKIP, rebind, RemapStore, type Bindings } from "../src/index.ts";
+import { HOLD_SKIP, KEYCAP, rebind, RemapStore, type Bindings } from "../src/index.ts";
 import { eq, ok, test } from "./assert.ts";
 import { DS4_ID, FakePad, setup, XBOX_ID, type Act } from "./fake.ts";
 
@@ -190,7 +190,8 @@ test("glyphs: game letters by default, physical on request, keys on keyboards", 
   input.keyboard.keyDown("Space");
   step();
   eq(input.lastDevice, "keyboard-1");
-  eq(input.glyph("jump"), { label: "SPACE", color: "#3a3a44", family: "keyboard", kind: "key", source: "Space" });
+  eq(input.glyph("jump"), { label: "SPACE", color: KEYCAP, family: "keyboard", kind: "key", source: "Space" });
+  eq(input.glyph("jump", { mode: "auto" }).color, KEYCAP, "keys are light caps (a dark cap made the legend unreadable)");
   eq(input.glyph("attack").kind, "none");
   eq(
     input.glyph("jump", { family: "switch", device: "nope", mode: "physical" }).label,

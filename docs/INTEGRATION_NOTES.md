@@ -19,6 +19,10 @@ and what was changed. Each fix has a test in its package.
   LESSONS.md says players hated. New `glyph(action, { mode: "auto" })`: the bound button's own face when it is a
   known button of that pad (CROSS on PlayStation, A on Xbox, the east A on Switch, green A on GameCube), else the
   game's letter. Test: "glyphs: game letters by default, physical on request, keys on keyboards".
+- **Keyboard glyphs were dark keycaps with dark legends.** Input gave keyboard glyphs the colour `#3a3a44`
+  (meant as text ink), but every prompt painter (ui's default included) uses a glyph's colour as the keycap, so
+  keys in the controller page and footers were unreadable. Keyboard glyphs now carry the keycap colour (`KEYCAP`,
+  light). Same test.
 
 ## @kindling/ui
 
