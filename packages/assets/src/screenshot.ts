@@ -26,6 +26,8 @@ export interface ShotTarget {
   url: string;
   /** Overrides the run's waitFor for this URL. */
   waitFor?: string;
+  /** Overrides the run's check for this URL. */
+  check?: string;
 }
 
 export interface ShotOptions {
@@ -36,6 +38,12 @@ export interface ShotOptions {
   waitFor?: string;
   /** Extra ms after the predicate (let animations / particles settle). */
   settleMs?: number;
+  /**
+   * JS expression evaluated after settling, just before the shot, returning a list of problems (strings) the page
+   * reports about itself, e.g. "window.game.layoutIssues" from a layout debugger; each one becomes a "check"
+   * problem. Anything else it returns (an object, a number) is kept in the report's `data` per file.
+   */
+  check?: string;
   timeoutMs?: number;
   /** Chromium binary (default $CHROMIUM, then /usr/bin/chromium, chromium-browser, google-chrome). */
   chromium?: string;
@@ -51,13 +59,15 @@ export interface ShotOptions {
 export interface ShotProblem {
   target: string;
   size: string;
-  kind: "console" | "pageerror" | "requestfailed" | "timeout";
+  kind: "console" | "pageerror" | "requestfailed" | "timeout" | "check";
   message: string;
 }
 
 export interface ShotReport {
   files: string[];
   problems: ShotProblem[];
+  /** What `check` returned per file (when it wasn't a list of problems). */
+  data: Record<string, unknown>;
 }
 
 export function findChromium(): string {
@@ -78,6 +88,7 @@ export async function screenshots(o: ShotOptions): Promise<ShotReport> {
   });
   const files: string[] = [];
   const problems: ShotProblem[] = [];
+  const data: Record<string, unknown> = {};
   try {
     for (const t of o.targets) {
       const target: ShotTarget = typeof t === "string" ? { name: slug(t.replace(/^\w+:\/\//, "")), url: t } : t;
@@ -106,6 +117,16 @@ export async function screenshots(o: ShotOptions): Promise<ShotReport> {
           note("timeout", (e as Error).message.split("\n")[0]);
         }
         const file = join(o.out, `${slug(target.name)}_${size}.png`);
+        const check = target.check ?? o.check;
+        if (check) {
+          try {
+            const v = await page.evaluate(check);
+            if (Array.isArray(v)) for (const m of v) note("check", String(m));
+            else data[file] = v;
+          } catch (e) {
+            note("check", `check failed: ${(e as Error).message.split("\n")[0]}`);
+          }
+        }
         await page.screenshot({ path: file, fullPage: o.fullPage ?? false });
         files.push(file);
         o.log?.(`shot ${file}`);
@@ -115,5 +136,5 @@ export async function screenshots(o: ShotOptions): Promise<ShotReport> {
   } finally {
     await browser.close();
   }
-  return { files, problems };
+  return { files, problems, data };
 }

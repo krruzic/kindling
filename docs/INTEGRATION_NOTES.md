@@ -27,3 +27,12 @@ and what was changed. Each fix has a test in its package.
   label. `Glyph` now has an optional `shape` (drawn as the symbol) and `"gc"` is an alias of `"gamecube"`, so an
   input glyph passes straight into `drawPromptBar` / keybind rows. Test: "glyphs: input's 'gc' family and shape
   field draw like gamecube / PlayStation symbols".
+
+## @kindling/assets
+
+- **The screenshot harness couldn't ask the page whether it looked right.** LESSONS.md wants every screen shot
+  with the layout debugger clean, but `screenshots()` only collected console errors. New `check` option (per run
+  or per target, and `--check` on `kindling-shots`): a JS expression evaluated just before each shot that returns
+  the page's own problem list (e.g. `window.game.layoutIssues`); each entry becomes a `"check"` problem. Non-list
+  results are kept in the new `ShotReport.data`. Test: "screenshot harness: sizes, predicate, console errors, page
+  checks".

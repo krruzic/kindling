@@ -79,7 +79,7 @@ test("blender smoke: textured part with sockets, CPU bake, thumbnail, rig transf
   ok(JSON.parse(rig).ok, rig);
 });
 
-test("screenshot harness: sizes, predicate, console errors", async () => {
+test("screenshot harness: sizes, predicate, console errors, page checks", async () => {
   let chromium = "";
   try {
     chromium = findChromium();
@@ -89,7 +89,7 @@ test("screenshot harness: sizes, predicate, console errors", async () => {
   }
   const out = tmp();
   const html = encodeURIComponent(
-    "<body style='margin:0;background:#235'><h1 style='color:#fc0'>hi</h1><script>setTimeout(()=>{window.ready=1;console.error('boom')},50)</script></body>",
+    "<body style='margin:0;background:#235'><h1 style='color:#fc0'>hi</h1><script>setTimeout(()=>{window.ready=1;console.error('boom')},50);window.issues=innerWidth<300?['overlap: a/b']:[]</script></body>",
   );
   const r = await screenshots({
     targets: [{ name: "page", url: `data:text/html,${html}` }],
@@ -99,10 +99,27 @@ test("screenshot harness: sizes, predicate, console errors", async () => {
       { width: 200, height: 320, name: "tall" },
     ],
     waitFor: "window.ready === 1",
+    check: "window.issues",
     chromium,
     timeoutMs: 30_000,
   });
   eq(r.files.length, 2);
+  eq(
+    r.problems
+      .filter((p) => p.kind === "check")
+      .map((p) => `${p.size} ${p.message}`)
+      .join("|"),
+    "tall overlap: a/b",
+    "check: the page's own problem list, per shot",
+  );
+  const r2 = await screenshots({
+    targets: [{ name: "data", url: `data:text/html,<script>window.stats={n:3}</script>`, check: "window.stats" }],
+    out,
+    sizes: [{ width: 100, height: 100 }],
+    chromium,
+  });
+  eq(JSON.stringify(Object.values(r2.data)), JSON.stringify([{ n: 3 }]), "check: non-list results are kept as data");
+  eq(r2.problems.length, 0);
   ok(r.files[1].endsWith("page_tall.png"));
   ok(r.files.every((f) => existsSync(f)));
   eq(
