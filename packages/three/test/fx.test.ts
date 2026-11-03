@@ -26,6 +26,18 @@ test("Particles: budget caps a burst; they die; batches by blend", () => {
   eq(p.emit({ ...base, tex: a, n: 10, floor: 0, gravity: 9.8 }, rand), 5, "density scales bursts");
 });
 
+test("Particles: align turns streaks to the screen-space velocity", () => {
+  const p = new Particles(10);
+  const cam = new THREE.PerspectiveCamera();
+  cam.position.set(0, 0, 5);
+  cam.updateMatrixWorld();
+  cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
+  p.emit({ tex: glowTexture(8), n: 1, x: 0, y: 0, z: 0, size: 0.1, life: 1, speed: 4, dir: { x: 0, y: 1, z: 0 }, cone: 0, align: true, stretch: 4 });
+  p.update(0.016, cam);
+  const q = (p as unknown as { slots: Map<string, { list: { rot: number }[] }> }).slots.values().next().value!.list[0];
+  near(q.rot, Math.PI / 2, 1e-3, "moving up the screen -> rotated a quarter turn");
+});
+
 test("DecalLayer: grow/fade, budget recycles the oldest, pins persist", () => {
   const d = new DecalLayer(ringTexture(16), 3);
   d.spawn({ x: 0, z: 0, life: 1, grow: 3 });

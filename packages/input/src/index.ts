@@ -11,4 +11,5 @@ export * from "./keyboard.ts";
 export * from "./remap.ts";
 export * from "./manager.ts";
 export * from "./nav.ts";
+export * from "./rumble.ts";
 export * from "./hid/index.ts";

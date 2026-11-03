@@ -66,3 +66,11 @@ and what was changed. Each fix has a test in its package.
   maps its output to ui's `Nav` (four lines in `examples/brawl/src/app/controls.ts`).
 - `drawPerf` (core) draws in canvas pixels; on a UI canvas with a layout transform, reset the transform first.
 - `Memo` panels can't report to the layout debugger on cached frames; record their rects outside the paint.
+
+## PELT juice pass
+
+- **@kindling/three `Particles`: sparks pointed in random directions.** `stretch` streaks took a random `rot`, so
+  impact sparks read as confetti. Added `align` (per particle) + `update(dt, camera?)`: aligned particles turn to their
+  screen-space velocity each update. Test: "Particles: align turns streaks to the screen-space velocity".
+- **@kindling/input had no rumble.** Added `Rumble` (dual-rumble through `Gamepad.vibrationActuator`, addressed by
+  the manager's "pad-<index>" handle; weaker pulses never cut a running one short; `scale`). Test: "rumble: ...".

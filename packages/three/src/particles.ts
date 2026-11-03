@@ -30,6 +30,8 @@ export interface Particle {
   drag: number;
   floor: number;
   stretch: number;
+  /** Rotate to the screen-space direction of travel each update (needs a camera in update()). */
+  align: boolean;
 }
 
 /** Textures one batch can sample (WebGL2 guarantees 16 fragment samplers). */
@@ -278,15 +280,21 @@ export class Particles {
       drag: 0,
       floor: -1e9,
       stretch: 1,
+      align: false,
     };
     this.slot(tex, additive, depthTest, order).list.push(p);
     this.count++;
     return p;
   }
 
-  update(dt: number): void {
+  /**
+   * Advance every particle. With a camera, `align` particles turn to their screen-space direction of travel
+   * (velocity-aligned streaks: sparks, speed lines).
+   */
+  update(dt: number, camera?: THREE.Camera): void {
     dt = Math.max(0, dt);
     let total = 0;
+    const view = camera ? camera.matrixWorldInverse.elements : null;
     for (const b of this.slots.values()) {
       if (b.list.length === 0) continue;
       const out: Particle[] = [];
@@ -310,7 +318,11 @@ export class Particles {
           p.vz *= 0.5;
           p.vy = Math.abs(p.vy) * 0.25;
         }
-        p.rot += p.spin * dt;
+        if (p.align && view) {
+          const vx = view[0] * p.vx + view[4] * p.vy + view[8] * p.vz;
+          const vy = view[1] * p.vx + view[5] * p.vy + view[9] * p.vz;
+          if (vx * vx + vy * vy > 1e-6) p.rot = Math.atan2(vy, vx);
+        } else p.rot += p.spin * dt;
         const s = p.size0 * (1 + (p.grow - 1) * (1 - (1 - k) * (1 - k)));
         p.sx = s * p.stretch;
         p.sy = s;
@@ -395,6 +407,7 @@ export class Particles {
       p.fadeIn = o.fadeIn ?? 0;
       p.life = Math.max(1e-3, r(o.life));
       p.stretch = o.stretch ?? 1;
+      p.align = !!o.align;
       if (o.floor !== undefined) p.floor = o.floor;
       p.sx = p.size0 * p.stretch;
       p.sy = p.size0;
@@ -449,6 +462,8 @@ export interface EmitOptions {
   order?: number;
   /** Width / height ratio (streaks). */
   stretch?: number;
+  /** Long axis follows the screen-space velocity (pass the camera to update()). */
+  align?: boolean;
 }
 
 const UP = new THREE.Vector3(0, 1, 0);
