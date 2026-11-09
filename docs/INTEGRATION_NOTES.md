@@ -74,3 +74,33 @@ and what was changed. Each fix has a test in its package.
   screen-space velocity each update. Test: "Particles: align turns streaks to the screen-space velocity".
 - **@kindling/input had no rumble.** Added `Rumble` (dual-rumble through `Gamepad.vibrationActuator`, addressed by
   the manager's "pad-<index>" handle; weaker pulses never cut a running one short; `scale`). Test: "rumble: ...".
+
+## QUICKLORE migration
+
+QUICKLORE (the pixel-art party game whose input, net, save, relay and UI pieces Kindling was partly extracted from)
+moved onto the packages: `@kindling/input` (InputManager with its Nintendo-position bindings, keyboard halves from its
+save), `@kindling/net` (relay, LobbyHost / LobbyGuest for its host-run select screen, LockstepHost / LockstepGuest),
+`@kindling/save` (a v1 -> v2 migration from its own localStorage format), `@kindling/core` (Mulberry32 is
+bit-identical to its RNG: the determinism baseline held until the hash switched to `sectionHashes`), `@kindling/audio`,
+`@kindling/server` and `@kindling/ui` (split layout + seams, text wrap / ellipsize, LayoutDebug).
+
+- **@kindling/audio `MusicPlayer` decoded every track whole.** A 2-minute track decodes to ~40 MB of PCM; with a
+  track per screen (title, select, run, showdown, results, credits) and prefetch on, a session held ~250 MB of
+  music. Tracks can now stream (`stream: true`: an HTMLAudioElement through a MediaElementAudioSourceNode, crossfaded
+  like decoded ones; the old stream is paused once its fade ends; never prefetched; `element` option for fakes).
+  Test: "music: streamed tracks play through a media element, crossfade and get paused after their fade".
+- **@kindling/input `MenuNavigator` couldn't give per-seat input.** A select screen where every seat moves its own
+  cursor needs one step per pad, but `read(pads, now, only)` merges, and reading one seat at a time with `only`
+  reset every other seat's repeat timer (so a held direction never repeated). New `readEach(pads, now)`: each pad's
+  own steps, presses and repeat timer. Test: "nav: readEach gives every seat its own steps and repeat timer".
+- **@kindling/input's rumble test didn't typecheck** (`startDelay` missing from the fake actuator's parameter type);
+  `pnpm -C packages/input typecheck` failed. Fixed the test's types.
+
+Left as they are (QUICKLORE keeps its own):
+
+- `@kindling/ui` components (MenuList, OptionsPage, Dialog, NameEntry, drawPromptBar) draw through a `Theme`'s fonts
+  and panel roles; QUICKLORE's menus are bespoke pixel layouts (blurb panes, walking heroes, per-row pickers, GUI
+  sheet frames per hero colour) and its prompt glyphs are drawn to match its 8 x 8 font. Adopting them means a
+  re-skin of every page; the pieces that fit as-is (split layout and seams, wrap / ellipsize, LayoutDebug) are used.
+- `LockstepHost`'s `leave: "stall"` has no way to drop a guest that said goodbye (it waits `dropAfterMs`): QUICKLORE
+  sends a "bye" and calls `drop(seats, "left")` itself, which works fine with the public API.

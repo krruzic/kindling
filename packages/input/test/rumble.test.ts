@@ -4,7 +4,8 @@ import { Rumble } from "../src/rumble.ts";
 
 test("rumble: dual-rumble to the addressed pad, merged and never cut short", () => {
   let now = 0;
-  const sent: { pad: number; duration: number; strongMagnitude: number; weakMagnitude: number }[] = [];
+  const sent: { pad: number; duration: number; strongMagnitude: number; weakMagnitude: number; startDelay?: number }[] =
+    [];
   const pad = (index: number) => ({
     id: "x",
     index,
@@ -13,13 +14,19 @@ test("rumble: dual-rumble to the addressed pad, merged and never cut short", () 
     axes: [],
     buttons: [],
     vibrationActuator: {
-      playEffect: (_t: string, p: { duration: number; strongMagnitude: number; weakMagnitude: number }) => {
+      playEffect: (
+        _t: string,
+        p: { duration: number; strongMagnitude: number; weakMagnitude: number; startDelay?: number },
+      ) => {
         sent.push({ pad: index, ...p });
         return Promise.resolve();
       },
     },
   });
-  const r = new Rumble(() => [pad(0), null, pad(2)], () => now);
+  const r = new Rumble(
+    () => [pad(0), null, pad(2)],
+    () => now,
+  );
   ok(r.play("pad-2", { strong: 1, weak: 0.5, ms: 200 }));
   eq(sent[0], { pad: 2, duration: 200, strongMagnitude: 1, weakMagnitude: 0.5, startDelay: 0 });
   now = 50;

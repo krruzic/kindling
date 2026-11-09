@@ -55,38 +55,65 @@ export class MenuNavigator<A extends string> {
     this.repeat = [];
   }
 
-  read(pads: readonly PadState<A>[], now: number, only = -1): NavInput<A> {
+  /** One pad's step this frame (advances its repeat timer). */
+  private one(p: PadState<A>, i: number, now: number): NavInput<A> {
     const o = this.opts;
     const n: NavInput<A> = { dx: 0, dy: 0, confirm: false, back: false, seat: -1, pressed: {} };
+    const r = (this.repeat[i] ??= { dir: null, t: 0 });
+    if (!p.connected) {
+      r.dir = null;
+      return n;
+    }
+    const dir = this.direction(p);
+    let fire = false;
+    if (dir !== r.dir) {
+      r.dir = dir;
+      r.t = now + (o.delay ?? NAV_DELAY);
+      fire = !!dir;
+    } else if (dir && now >= r.t) {
+      r.t += o.every ?? NAV_EVERY;
+      if (r.t <= now) r.t = now + (o.every ?? NAV_EVERY);
+      fire = true;
+    }
+    if (fire) {
+      if (dir === "left") n.dx = -1;
+      if (dir === "right") n.dx = 1;
+      if (dir === "up") n.dy = -1;
+      if (dir === "down") n.dy = 1;
+    }
+    n.confirm = o.confirm.some((a) => p.pressed[a]);
+    n.back = o.back.some((a) => p.pressed[a]);
+    for (const a of Object.keys(p.pressed) as A[]) if (p.pressed[a]) n.pressed[a] = true;
+    if (fire || n.confirm || n.back) n.seat = i;
+    return n;
+  }
+
+  /** Every pad's (or one seat's) input merged: the first pad to step or press decides `seat`. */
+  read(pads: readonly PadState<A>[], now: number, only = -1): NavInput<A> {
+    const n: NavInput<A> = { dx: 0, dy: 0, confirm: false, back: false, seat: -1, pressed: {} };
     pads.forEach((p, i) => {
-      const r = (this.repeat[i] ??= { dir: null, t: 0 });
-      if (!p.connected || (only >= 0 && i !== only)) {
-        r.dir = null;
+      if (only >= 0 && i !== only) {
+        (this.repeat[i] ??= { dir: null, t: 0 }).dir = null;
         return;
       }
-      const dir = this.direction(p);
-      let fire = false;
-      if (dir !== r.dir) {
-        r.dir = dir;
-        r.t = now + (o.delay ?? NAV_DELAY);
-        fire = !!dir;
-      } else if (dir && now >= r.t) {
-        r.t += o.every ?? NAV_EVERY;
-        if (r.t <= now) r.t = now + (o.every ?? NAV_EVERY);
-        fire = true;
+      const e = this.one(p, i, now);
+      if ((e.dx || e.dy) && !n.dx && !n.dy) {
+        n.dx = e.dx;
+        n.dy = e.dy;
       }
-      const hit = (fire && !n.dx && !n.dy) || o.confirm.some((a) => p.pressed[a]) || o.back.some((a) => p.pressed[a]);
-      if (fire && !n.dx && !n.dy) {
-        if (dir === "left") n.dx = -1;
-        if (dir === "right") n.dx = 1;
-        if (dir === "up") n.dy = -1;
-        if (dir === "down") n.dy = 1;
-      }
-      n.confirm ||= o.confirm.some((a) => p.pressed[a]);
-      n.back ||= o.back.some((a) => p.pressed[a]);
-      for (const a of Object.keys(p.pressed) as A[]) if (p.pressed[a]) n.pressed[a] = true;
-      if (hit && n.seat < 0) n.seat = i;
+      n.confirm ||= e.confirm;
+      n.back ||= e.back;
+      Object.assign(n.pressed, e.pressed);
+      if (e.seat >= 0 && n.seat < 0) n.seat = i;
     });
     return n;
+  }
+
+  /**
+   * Each pad's own input this frame, unmerged (a select screen where every seat moves its own cursor). Every pad
+   * keeps its own repeat timer; read() and readEach() share them, so use one or the other per frame.
+   */
+  readEach(pads: readonly PadState<A>[], now: number): NavInput<A>[] {
+    return pads.map((p, i) => this.one(p, i, now));
   }
 }

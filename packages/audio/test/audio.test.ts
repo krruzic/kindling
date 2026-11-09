@@ -5,7 +5,7 @@ import { SampleBank, groupVariants } from "../src/bank.ts";
 import { AudioEngine } from "../src/engine.ts";
 import { MusicPlayer } from "../src/music.ts";
 import { lean, place, type Hearing } from "../src/spatial.ts";
-import { FakeBuffer, FakeContext, FakeGain, FakeSource, asBuf, asCtx } from "./fakeAudio.ts";
+import { FakeBuffer, FakeContext, FakeGain, FakeMedia, FakeNode, FakeSource, asBuf, asCtx } from "./fakeAudio.ts";
 import { eq, near, ok, test } from "./harness.ts";
 
 function engine(o: { maxVoices?: number } = {}) {
@@ -289,4 +289,37 @@ test("music: plays the wanted track, crossfades on change with a scheduled stop,
   ok((battle.out[0] as FakeGain).gain.events.some(([k, v]) => k === "target" && Math.abs(v! - 0.2) < 1e-9));
   music.stop();
   eq(fc.endless.length, 0);
+});
+
+test("music: streamed tracks play through a media element, crossfade and get paused after their fade", () => {
+  const { a, fc } = engine();
+  const els: FakeMedia[] = [];
+  const music = new MusicPlayer(
+    a,
+    { title: { url: "title.ogg", stream: true }, run: { url: "run.ogg", stream: true, gain: 0.5 } },
+    { element: (u) => (els.push(new FakeMedia(u)), els[els.length - 1]), fade: 1 },
+  );
+  music.set("title");
+  music.update();
+  eq(music.current, "title", "streams start at once");
+  eq(els.length, 1);
+  ok(els[0].playing && els[0].loop);
+  ok(els[0].node!.reaches(a.bus("music") as unknown as FakeNode));
+  fc.currentTime = 5;
+  music.set("run");
+  music.update();
+  eq(music.current, "run");
+  eq(els.length, 2);
+  ok(els[0].playing, "the old stream fades first");
+  eq(music.streams, 2);
+  fc.currentTime = 6.2;
+  music.update();
+  ok(!els[0].playing, "paused after its fade");
+  ok(els[1].playing);
+  eq(music.streams, 1);
+  music.stop();
+  fc.currentTime = 7;
+  music.update();
+  ok(!els[1].playing, "stop() pauses the stream too");
+  eq(fc.sources.filter((s) => s.kind === "source" && s.buffer && s.buffer.duration !== 1).length, 0, "nothing decoded");
 });

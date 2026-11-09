@@ -138,6 +138,10 @@ export class FakeContext {
   createDynamicsCompressor() {
     return new FakeNode("compressor", this);
   }
+  createMediaElementSource(el: FakeMedia) {
+    el.node = new FakeNode("media", this);
+    return el.node;
+  }
   createBufferSource() {
     return new FakeSource("source", this);
   }
@@ -170,3 +174,20 @@ export class FakeContext {
 
 export const asCtx = (f: FakeContext) => f as unknown as AudioContext;
 export const asBuf = (b: FakeBuffer) => b as unknown as AudioBuffer;
+
+/** A fake media element for streamed music. */
+export class FakeMedia {
+  loop = false;
+  preload = "";
+  currentTime = 0;
+  playing = false;
+  node: FakeNode | null = null;
+  constructor(public url: string) {}
+  play() {
+    this.playing = true;
+    return Promise.resolve();
+  }
+  pause() {
+    this.playing = false;
+  }
+}

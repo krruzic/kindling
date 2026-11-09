@@ -53,6 +53,24 @@ test("nav: per-seat state, only one seat, confirm / back", () => {
   eq([n.confirm, n.seat, n.pressed.pause], [true, 0, true]);
 });
 
+test("nav: readEach gives every seat its own steps and repeat timer", () => {
+  const nav = new MenuNavigator<Act>({ ...opts, confirm: [...opts.confirm], back: [...opts.back] });
+  const a = emptyPad(ACTS);
+  const b = emptyPad(ACTS);
+  a.connected = b.connected = true;
+  a.held.down = true;
+  let e = nav.readEach([a, b], 0);
+  eq([e[0].dy, e[1].dy, e[0].seat, e[1].seat], [1, 0, 0, -1]);
+  b.held.up = true;
+  e = nav.readEach([a, b], 0.1);
+  eq([e[0].dy, e[1].dy], [0, -1], "b's fresh press fires while a waits out its delay");
+  e = nav.readEach([a, b], NAV_DELAY + 0.01);
+  eq([e[0].dy, e[1].dy], [1, 0], "a repeats on its own timer");
+  b.pressed.attack = true;
+  e = nav.readEach([a, b], NAV_DELAY + 0.02);
+  eq([e[0].back, e[1].back, e[1].seat], [false, true, 1], "presses stay with their seat");
+});
+
 test("nav: confirm follows a remap", () => {
   const { input, pads, step } = setup({ joinPressCounts: true });
   const nav = new MenuNavigator<Act>({ ...opts, confirm: ["jump"], back: ["attack"] });
