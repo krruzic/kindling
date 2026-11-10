@@ -8,5 +8,6 @@ import "./nav.test.ts";
 import "./sticks.test.ts";
 import "./hid.test.ts";
 import "./rumble.test.ts";
+import "./touch.test.ts";
 
 process.exit(await run());

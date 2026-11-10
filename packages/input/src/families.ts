@@ -155,6 +155,7 @@ const LABELS: Record<Exclude<PadFamily, "keyboard">, Record<PadButton, string>> 
   switch: SWITCH,
   gc: GC,
   generic: GENERIC,
+  touch: GENERIC,
 };
 
 const COLORS: Partial<Record<PadFamily, Partial<Record<PadButton, string>>>> = {
@@ -243,4 +244,5 @@ export const FAMILY_NAME: Record<PadFamily, string> = {
   gc: "GAMECUBE",
   generic: "UNKNOWN LAYOUT",
   keyboard: "KEYBOARD",
+  touch: "TOUCH SCREEN",
 };

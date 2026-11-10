@@ -36,6 +36,7 @@ See [docs/LESSONS.md § Input](../../docs/LESSONS.md#input). In short:
 | `Rumble`                 | `play(handle \| index, { strong, weak, ms })` dual-rumble on a browser pad (`vibrationActuator`); weaker pulses never cut a running one short; `scale` (0 = off), `stop()`.
 | `detectFamily`, `buttonFace`, `keyLabel`, `cleanPadName`                               | Family from a Gamepad id; label / colour / shape per family; key names.                                                                                                                                                                                                                       |
 | `profileFor`, `BUILTIN_PROFILES`, `Profile`                                            | Raw-gamepad layouts as data.                                                                                                                                                                                                                                                                  |
+| `TouchPad`, `stickOutput`, `TouchLayout` | A touchscreen as one more pad (a `PadProvider`, family `touch`): a floating (or fixed) virtual stick (deadzone, full tilt at its radius, re-centres when the thumb drifts past it, analog or 8-way) and multi-touch virtual buttons bound to canonical buttons (hold, a tap shorter than a poll still reads once, slide between neighbours, pointercancel releases, a second finger in the stick zone ignored). `attach(el)` wires pointer events with capture and blocks scroll / zoom / long-press / selection; `drainTaps()` gives taps off the controls to a game's menus; `stickView()` / `held()` for drawing. The game draws it and sets its layout (CSS px) with `setLayout`. |
 | `radialDeadzone`, `axialDeadzone`, `dir4`, `FlickDetector`, `SmashDetector`, `TapHold` | Stick helpers.                                                                                                                                                                                                                                                                                |
 | `@kindling/input/hid`: `GcAdapter`, `ProCon2`, `ProCon2Waker`, `requestHidPads`        | WebHID / WebUSB readers, each a `PadProvider`; pure `GcAdapterDecoder` / `ProCon2Decoder` for tests.                                                                                                                                                                                          |
 
@@ -132,3 +133,29 @@ callbacks, and every browser API (`navigator.getGamepads`, WebHID, WebUSB, windo
 core runs under node with fake pads (`pnpm test`). Left in Grudge: the `CommandMapper` (build menus, charge,
 reticles, MOBA mouse play), the pad diagrams and setup page drawing, and the keyboard-yields-to-pad rule for mouse
 users.
+
+### Touch
+
+```ts
+import { TouchPad } from "@kindling/input";
+
+const touch = new TouchPad({ buttons: ["south", "east", "start"] }); // every button it can have (binds them early)
+const input = new InputManager<Action>({ actions, bindings, providers: [touch] });
+touch.attach(canvas);
+// each frame, in CSS px of the canvas:
+touch.setLayout({
+  stick: { zone: { x: 0, y: h * 0.3, w: w * 0.45, h: h * 0.7 }, mode: "floating", cx: 90, cy: h - 90, radius: 60 },
+  buttons: [
+    { id: "east", x: w - 70, y: h - 80, r: 40 },
+    { id: "south", x: w - 150, y: h - 60, r: 32 },
+    { id: "start", x: w - 60, y: 30, r: 22 },
+  ],
+});
+for (const tap of touch.drainTaps()) if (!tap.onControl) menuTap(tap.x, tap.y);
+```
+
+It joins a seat like any pad (on a button press while joining, or `input.join(touch.handle)`), and its stick
+comes through unshaped by `stickDeadzone` (it has its own). Show the controls while `touch.lastTouch` is the most
+recent input. See docs/INTEGRATION_NOTES.md (QUICKLORE touch) for what a game still does itself: drawing, the
+layout in millimetres and safe areas, menus by tap, the page plumbing.
+

@@ -48,8 +48,9 @@ export const STANDARD_BUTTONS: readonly PadButton[] = [
   "capture",
 ];
 
-/** Which pad a device looks like: picks labels, colours and the game's per-family default bindings. */
-export type PadFamily = "xbox" | "playstation" | "switch" | "gc" | "generic" | "keyboard";
+/** Which pad a device looks like: picks labels, colours and the game's per-family default bindings ("touch": a
+ * TouchPad, whose buttons carry no printed labels: prompts show the game's own). */
+export type PadFamily = "xbox" | "playstation" | "switch" | "gc" | "generic" | "keyboard" | "touch";
 
 /** The parts of the browser Gamepad the core reads (real Gamepads satisfy it; tests pass plain objects). */
 export interface GamepadLike {

@@ -286,7 +286,9 @@ export class InputManager<A extends string> {
       d.read(b, buttonFace(p.family, b).label, s, now, { button: b, analog, onAt: this.onAt(b, false) });
     }
     const dz = this.opts.stickDeadzone ?? 0.2;
-    d.stick = [...radialDeadzone(p.stick[0], p.stick[1], dz), ...radialDeadzone(p.cstick[0], p.cstick[1], dz)];
+    // (a touch stick comes already shaped: its own deadzone, full tilt at its radius)
+    const main: [number, number] = p.family === "touch" ? [p.stick[0], p.stick[1]] : radialDeadzone(p.stick[0], p.stick[1], dz);
+    d.stick = [...main, ...radialDeadzone(p.cstick[0], p.cstick[1], dz)];
     d.lt = Math.min(1, d.sources.get("lt")?.trig.travel ?? 0);
     d.rt = Math.min(1, d.sources.get("rt")?.trig.travel ?? 0);
   }

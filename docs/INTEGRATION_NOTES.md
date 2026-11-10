@@ -123,3 +123,28 @@ Left as they are (QUICKLORE keeps its own):
   src/render/camera.ts, interp.ts, pixel.ts), but the lesson for `GETTING_STARTED`-style games: lock the camera to the
   interpolated player, snap camera and sprites with one rule on one grid (absolute positions snapped, then minus the
   grid-aligned camera: `snap(x - cam)` flips on float ties), and don't add look-ahead that swings on reversals.
+
+## QUICKLORE touch controls
+
+- **New: `TouchPad` in @kindling/input** (a touchscreen as a pad, family `touch`). A `PadProvider`, so seats, the
+  game's bindings by canonical button, prompts, `MenuNavigator` and lockstep online all work unchanged: the sim only
+  ever sees commands. Floating or fixed stick (deadzone rescaled so its edge isn't a jump, full tilt at the radius,
+  the centre follows a thumb dragged past the radius so reversing is instant, analog or 8-way), multi-touch buttons
+  (round or rect, hold, tap latched for one poll, slide to a neighbour with a little hysteresis, pointercancel /
+  blur / hidden page release everything), a second finger in the stick zone ignored (palms), taps off the controls
+  queued for the game's menus. `attach(el)`: pointer events with capture, `touch-action: none`, no scroll / pinch /
+  double-tap zoom / long-press menu / selection. New family `"touch"` (labels: the game's own). InputManager: a
+  touch pad's stick skips `stickDeadzone` (it comes shaped). Tests: test/touch.test.ts (stick maths, re-centring,
+  fixed vs floating, three fingers in one frame, tap latch, slide, cancel, palm, taps, as a seat, buttons first laid
+  out after joining).
+- **Found on the way: an ExternalPad device binds only the buttons it reports when it's first seen** (readExternal
+  filters the defaults by `p.buttons` at creation). A touch pad first touched in a menu (no buttons drawn there)
+  ended up with no bindings for the rest of the session. TouchPad now reports every button it ever had (and takes a
+  `buttons` list up front). Left as is for HID pads (their button set is fixed).
+- What stays in the game (QUICKLORE: src/app/touch.ts, src/ui/taps.ts, src/app/mobile.ts): drawing the controls in
+  its own style, sizes in millimetres (CSS px are ~0.18 mm on phones, ~0.21 on tablets; no API gives the real size)
+  and the safe-area insets (read through a probe element's `env(safe-area-inset-*)` padding), fading them out when
+  a pad or the keyboard is used, menus by tap (each screen registers tap targets while drawing), fullscreen /
+  orientation lock / audio unlock inside the DOM gesture (a rAF frame isn't one), the wake lock, a rotate screen,
+  the manifest. A future `@kindling/ui` helper could take the tap-target registry; it's small and game-shaped for now.
+

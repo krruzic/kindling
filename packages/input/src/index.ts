@@ -12,4 +12,5 @@ export * from "./remap.ts";
 export * from "./manager.ts";
 export * from "./nav.ts";
 export * from "./rumble.ts";
+export * from "./touch.ts";
 export * from "./hid/index.ts";
