@@ -104,3 +104,22 @@ Left as they are (QUICKLORE keeps its own):
   re-skin of every page; the pieces that fit as-is (split layout and seams, wrap / ellipsize, LayoutDebug) are used.
 - `LockstepHost`'s `leave: "stall"` has no way to drop a guest that said goodbye (it waits `dropAfterMs`): QUICKLORE
   sends a "bye" and calls `drop(seats, "left")` itself, which works fine with the public API.
+
+## QUICKLORE camera pass
+
+- **Fixed-step pacing stuttered at a steady 60 Hz (`FixedLoop`, `LockstepHost`, `LockstepGuest`).** All three ran
+  `while (acc >= tick)`. Display timestamps wobble by fractions of a millisecond (timer precision, the compositor),
+  and whenever the carried remainder sits near a tick boundary that turns a steady 1 / 1 / 1 into 0 / 2 / 1 / 0 / 2
+  ticks per frame: the world holds still for a frame, then jumps two (QUICKLORE's owner: "smooth jerky"). New
+  `FrameSnap` (@kindling/core; a copy in net's `lockstep/pace.ts`, which doesn't depend on core): a frame time within
+  6% of a tick of 1/4, 1/3, 1/2, 1 or 2 ticks counts as exactly that, and what it shaves is kept as a debt and paid
+  back once it reaches a tick (no drift from the wall clock). `FixedLoop` snaps by default (`snap: false` to opt
+  out; not in slow motion); the lockstep pacers always do. New `alpha` getters on `LockstepHost` / `LockstepGuest`
+  (wall clock past the last tick, 0..1) for render interpolation, like `FixedLoop.alpha`. Tests: core "pacing: a 60 /
+  120 Hz display with sub-ms wobble steps evenly (...)", "FrameSnap leaves odd frame times alone and pays back what
+  it shaves"; net "pacing: at 60 Hz (vsync timestamps with sub-ms jitter) every frame steps exactly one tick, no 0 / 2
+  stutter".
+- Not changed: a game's own camera and render interpolation stay in the game (QUICKLORE's are in
+  src/render/camera.ts, interp.ts, pixel.ts), but the lesson for `GETTING_STARTED`-style games: lock the camera to the
+  interpolated player, snap camera and sprites with one rule on one grid (absolute positions snapped, then minus the
+  grid-aligned camera: `snap(x - cam)` flips on float ties), and don't add look-ahead that swings on reversals.

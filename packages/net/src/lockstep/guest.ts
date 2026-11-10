@@ -6,6 +6,7 @@
 // ticks per frame; a long backlog (a rejoin replaying the whole match) is a replay and steps many ticks per frame
 // (onStep gets replaying=true so the game can skip sounds and effects). After a resume the guest only sends inputs
 // once it has caught up ("ls:live" with the tick they start at), so the host never waits on a replay.
+import { FrameSnap } from "./pace.ts";
 import type { NetMsg } from "../protocol.ts";
 import {
   diffSections,
@@ -97,6 +98,12 @@ export class LockstepGuest<Cmd, Packed = unknown, Spec = unknown> {
   private sections: string[] | undefined;
   private hashEvery = 30;
   private acc = 0;
+  private snapper: FrameSnap | null = null;
+
+  /** How far the wall clock is past the last tick, in ticks (0..1): for render interpolation. */
+  get alpha(): number {
+    return Math.max(0, Math.min(1, this.acc / this.tickMs));
+  }
   private lastNow: number | null = null;
   private now = 0;
   private frameAt = 0;
@@ -268,7 +275,9 @@ export class LockstepGuest<Cmd, Packed = unknown, Spec = unknown> {
     if (!this.running || !this.sim) return;
     const dt = this.lastNow === null ? 0 : Math.max(0, Math.min(250, now - this.lastNow));
     this.lastNow = now;
-    this.acc += dt;
+    // (snapped to whole display refreshes when it's within a hair of one: even steps at 60 / 120 Hz)
+    this.snapper ??= new FrameSnap(this.tickMs);
+    this.acc += this.snapper.snap(dt);
     const tickMs = this.tickMs;
     const buffer = this.o.bufferTicks ?? 2;
     const backlog = () => this.top - this.tick;

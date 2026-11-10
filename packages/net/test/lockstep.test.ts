@@ -234,3 +234,31 @@ test("host leaving ends the match for guests", () => {
   w.run(500);
   for (const g of w.guests) eq(g.ends, ["host-left"]);
 });
+
+test("pacing: at 60 Hz (vsync timestamps with sub-ms jitter) every frame steps exactly one tick, no 0 / 2 stutter", () => {
+  const w = new World({ seed: 5, latencyMs: [20, 20], guests: [[0]] });
+  w.run(2500);
+  w.start();
+  w.run(3000);
+  let seed = 99;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  // a display at 60 Hz: vsync timestamps read with up to half a millisecond of noise (it doesn't add up)
+  let noise = 0;
+  const per = (get: () => number) => {
+    const out: number[] = [];
+    for (let i = 0; i < 600; i++) {
+      const t0 = get();
+      const next = (rnd() - 0.5) * 1.0;
+      w.step(1000 / 60 + next - noise);
+      noise = next;
+      out.push(get() - t0);
+    }
+    return out;
+  };
+  const host = per(() => w.host.host!.tick);
+  const odd = host.filter((n) => n !== 1).length;
+  eq(odd, 0, `host frames that didn't step exactly once: ${odd} of ${host.length}`);
+  const guest = per(() => w.guests[0].guest!.tick);
+  const godd = guest.filter((n) => n !== 1).length;
+  ok(godd <= 2, `guest frames that didn't step exactly once: ${godd} of ${guest.length}`);
+});

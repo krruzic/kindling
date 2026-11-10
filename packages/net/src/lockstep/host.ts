@@ -17,6 +17,7 @@
 // - desync: guests compare hashes and report the differing sections ("ls:desync" -> onDesync).
 // - the host leaving ends the match for everyone (relay "hostgone"); a local pause menu must not pause the sim
 //   (feed idle commands for the pausing seat instead).
+import { FrameSnap } from "./pace.ts";
 import type { NetMsg } from "../protocol.ts";
 import {
   hashRow,
@@ -112,6 +113,12 @@ export class LockstepHost<Cmd, Packed = unknown, Spec = unknown> {
   private outHashes: HashRow[] = [];
   private sent = 0;
   private acc = 0;
+  private snapper: FrameSnap | null = null;
+
+  /** How far the wall clock is past the last tick, in ticks (0..1): for render interpolation. */
+  get alpha(): number {
+    return Math.max(0, Math.min(1, this.acc / this.o.tickMs));
+  }
   private now = 0;
   private lastNow: number | null = null;
   private stallAt = 0;
@@ -233,7 +240,9 @@ export class LockstepHost<Cmd, Packed = unknown, Spec = unknown> {
     if (!this.running || !this.sim) return;
     const dt = this.lastNow === null ? 0 : Math.max(0, Math.min(250, now - this.lastNow));
     this.lastNow = now;
-    this.acc += dt;
+    // (snapped to whole display refreshes when it's within a hair of one: even steps at 60 / 120 Hz)
+    this.snapper ??= new FrameSnap(this.o.tickMs);
+    this.acc += this.snapper.snap(dt);
     const tickMs = this.o.tickMs;
     const maxSteps = this.o.maxSteps ?? 4;
     const stallMode = (this.o.leave ?? "idle") === "stall";
