@@ -93,6 +93,14 @@ bit-identical to its RNG: the determinism baseline held until the hash switched 
   cursor needs one step per pad, but `read(pads, now, only)` merges, and reading one seat at a time with `only`
   reset every other seat's repeat timer (so a held direction never repeated). New `readEach(pads, now)`: each pad's
   own steps, presses and repeat timer. Test: "nav: readEach gives every seat its own steps and repeat timer".
+- **@kindling/audio had no per-view ownership or voice limits.** Split screen played every player's minor sounds
+  (coin ticks, gems, swings) through every view at full level, and four players picking things up at once was a wall
+  of the same blip: the engine's only cap was a global voice count plus one-per-name-per-frame. New: a `Listener.owner`
+  (the entity a view follows) and `place(..., owner, { minor: true, foreign })`: a minor sound is heard through its
+  owner's view only (panned to that slice), and one whose owner has no view here (a CPU, a remote player) gets
+  `foreign` (default 0.25). And `VoiceLimiter` (pure bookkeeping, usable headless): at most `max` copies of a sound or
+  a category at once and a `gap` between starts. Tests: "spatial: a minor sound is heard through its owner's view
+  only...", "limit: at most N copies of a sound or a category at once...". QUICKLORE's sound overhaul uses both.
 - **@kindling/input `MenuNavigator` only heard seated devices.** Menus read `read(players)` / `readEach(players)`,
   which only see devices in a seat; a device a game frees (backing out of a select screen calls `release`) can only
   re-seat with a button, never a direction, and with `joinPressCounts` that button also acts. In QUICKLORE the main

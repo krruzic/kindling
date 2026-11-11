@@ -5,6 +5,7 @@ import { SampleBank, groupVariants } from "../src/bank.ts";
 import { AudioEngine } from "../src/engine.ts";
 import { MusicPlayer } from "../src/music.ts";
 import { lean, place, type Hearing } from "../src/spatial.ts";
+import { VoiceLimiter } from "../src/limit.ts";
 import { FakeBuffer, FakeContext, FakeGain, FakeMedia, FakeNode, FakeSource, asBuf, asCtx } from "./fakeAudio.ts";
 import { eq, near, ok, test } from "./harness.ts";
 
@@ -322,4 +323,34 @@ test("music: streamed tracks play through a media element, crossfade and get pau
   music.update();
   ok(!els[1].playing, "stop() pauses the stream too");
   eq(fc.sources.filter((s) => s.kind === "source" && s.buffer && s.buffer.duration !== 1).length, 0, "nothing decoded");
+});
+
+test("spatial: a minor sound is heard through its owner's view only; another player's (no view here) is quiet", () => {
+  const view = (x: number, left: number, owner: number) => ({ x, z: 0, range: 100, left, span: 0.5, owner });
+  const h: Hearing = { views: [view(0, 0, 1), view(10, 0.5, 2)], own: new Set([1, 2]) };
+  // at x = 0, in both views (player 1's on the left): player 2 picked it up, so it comes from the right view
+  const p2 = place(h, 0, 0, 0, 2, { minor: true })!;
+  ok(p2.pan > 0, `panned to its owner's view (${p2.pan})`);
+  const loud = place(h, 0, 0, 0, undefined, {})!;
+  ok(loud.pan < 0, `an ownerless sound: the nearest view as before (${loud.pan})`);
+  // a CPU's (owner 7, no view) minor sound: quiet
+  const cpu = place(h, 0, 0, 0, 7, { minor: true })!;
+  near(cpu.gain, loud.gain * 0.25, 1e-9, "foreign: a quarter");
+  near(place(h, 0, 0, 0, 7, { minor: true, foreign: 0.5 })!.gain, loud.gain * 0.5, 1e-9);
+  // not minor: unchanged
+  near(place(h, 0, 0, 0, 2)!.gain, loud.gain, 1e-9);
+});
+
+test("limit: at most N copies of a sound or a category at once, a gap between starts, slots free when they end", () => {
+  const l = new VoiceLimiter({ sounds: { coin: { max: 2, gap: 0.05 } }, groups: { pickup: { max: 3 } } });
+  ok(l.admit("coin", "pickup", 0, 0.3));
+  ok(!l.admit("coin", "pickup", 0.01, 0.3), "inside the gap");
+  ok(l.admit("coin", "pickup", 0.06, 0.3));
+  ok(!l.admit("coin", "pickup", 0.2, 0.3), "two already playing");
+  ok(l.admit("gem", "pickup", 0.2, 0.3), "another pickup");
+  ok(!l.admit("heart", "pickup", 0.21, 0.3), "the category is full");
+  ok(l.admit("coin", "pickup", 0.4, 0.3), "the first ones ended");
+  eq(l.played.get("coin"), 3);
+  eq(l.refused.get("coin"), 2);
+  eq(l.live(0.45), 2);
 });

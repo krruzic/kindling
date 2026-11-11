@@ -4,3 +4,4 @@ export * from "./engine.ts";
 export * from "./spatial.ts";
 export * from "./ambience.ts";
 export * from "./music.ts";
+export * from "./limit.ts";

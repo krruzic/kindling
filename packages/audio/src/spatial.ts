@@ -18,6 +18,8 @@ export interface Listener {
   span: number;
   /** Projects a world point into the view: sx -1..1 across it, and whether it is on screen. */
   project?(x: number, y: number, z: number): { sx: number; visible: boolean };
+  /** The entity this view follows (its player): a `minor` sound of theirs is heard through this view only. */
+  owner?: number;
 }
 
 export interface Hearing {
@@ -44,6 +46,14 @@ export interface PlaceOpts {
   offscreen?: number;
   /** How far toward the screen edges panning reaches. */
   width?: number;
+  /**
+   * A minor sound (a pickup, a footstep, a gem): with an `owner`, only the owner's own view hears it (panned to that
+   * view's slice, at full level near them); another player's minor sound (a CPU, a remote player: no view of their
+   * own) gets `foreign`. Without this, split screen plays every player's coin ticks through every view.
+   */
+  minor?: boolean;
+  /** Gain for a minor sound whose owner has no view here (default 0.25). */
+  foreign?: number;
 }
 
 export const CENTER: Place = { gain: 1, pan: 0, muffle: false };
@@ -55,7 +65,10 @@ export function place(h: Hearing, x: number, y: number, z: number, owner?: numbe
   const near = o.near ?? 0.6;
   const far = o.far ?? 1.35;
   let best: Place | null = null;
-  for (const l of h.views) {
+  // a minor sound of a player with a view: that view alone
+  const mine = o.minor && owner !== undefined ? h.views.filter((l) => l.owner === owner) : [];
+  const views = mine.length ? mine : h.views;
+  for (const l of views) {
     const d = Math.hypot(x - l.x, z - l.z) / Math.max(1e-6, l.range);
     const t = clamp((d - near) / (far - near), 0, 1);
     const g = (1 - t) * (1 - t);
@@ -68,6 +81,7 @@ export function place(h: Hearing, x: number, y: number, z: number, owner?: numbe
       muffle: !p.visible,
     };
   }
+  if (o.minor && owner !== undefined && !mine.length && best) best.gain *= o.foreign ?? 0.25;
   if (owner !== undefined && h.own?.has(owner)) {
     const floor = o.ownFloor ?? 0.32;
     if (!best) return { gain: floor, pan: 0, muffle: true };
