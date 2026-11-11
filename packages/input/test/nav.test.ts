@@ -86,3 +86,34 @@ test("nav: confirm follows a remap", () => {
   const n = nav.read(input.players, 1.1);
   eq([n.confirm, n.back], [false, false], "old button (now unbound after swap rules) doesn't");
 });
+
+test("nav: readDevices lets any device drive a menu, seated or not (one released from its seat steps by direction)", () => {
+  const { input, pads, step, now } = setup();
+  const nav = new MenuNavigator<Act>({ ...opts, confirm: [...opts.confirm], back: [...opts.back] });
+  const a = new FakePad(XBOX_ID, 0);
+  pads.push(a);
+  a.press(0);
+  step();
+  eq(input.seatOf("pad-0"), 0);
+  a.up(0);
+  step();
+  // the game frees the seat (back out of a select screen)
+  input.release(0);
+  step();
+  eq(input.seatOf("pad-0"), -1);
+  eq(nav.read(input.players, now()).dy, 0, "the seats see nothing: the pad isn't in one");
+  // a stick push doesn't rejoin (axes never seat), but the device itself still reads
+  a.axis(1, 0.9);
+  step();
+  eq(input.seatOf("pad-0"), -1, "the stick doesn't seat");
+  const n = nav.readDevices(input.deviceList(), now());
+  eq([n.dy, n.handle], [1, "pad-0"], "readDevices steps");
+  eq(nav.readDevices(input.deviceList(), now() + 0.05).dy, 0, "its own repeat timer: no second step in the delay");
+  eq(nav.read(input.players, now() + 0.06).dy, 0, "and the seat timers are apart");
+  a.axis(1, 0);
+  step();
+  eq(nav.readDevices(input.deviceList(), now()).dy, 0, "let go");
+  a.axis(1, -0.9);
+  step();
+  eq(nav.readDevices(input.deviceList(), now()).dy, -1, "up at once");
+});

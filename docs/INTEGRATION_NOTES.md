@@ -93,6 +93,13 @@ bit-identical to its RNG: the determinism baseline held until the hash switched 
   cursor needs one step per pad, but `read(pads, now, only)` merges, and reading one seat at a time with `only`
   reset every other seat's repeat timer (so a held direction never repeated). New `readEach(pads, now)`: each pad's
   own steps, presses and repeat timer. Test: "nav: readEach gives every seat its own steps and repeat timer".
+- **@kindling/input `MenuNavigator` only heard seated devices.** Menus read `read(players)` / `readEach(players)`,
+  which only see devices in a seat; a device a game frees (backing out of a select screen calls `release`) can only
+  re-seat with a button, never a direction, and with `joinPressCounts` that button also acts. In QUICKLORE the main
+  menu after leaving select ignored up / down and A took you straight back into PLAY. New
+  `readDevices(input.deviceList(), now)`: every connected device, seated or not, merged, repeat timers kept per
+  device handle (apart from the seat timers, so a game can read both in one frame), with the acting `handle`. Test:
+  "nav: readDevices lets any device drive a menu, seated or not".
 - **@kindling/input's rumble test didn't typecheck** (`startDelay` missing from the fake actuator's parameter type);
   `pnpm -C packages/input typecheck` failed. Fixed the test's types.
 
@@ -147,4 +154,3 @@ Left as they are (QUICKLORE keeps its own):
   a pad or the keyboard is used, menus by tap (each screen registers tap targets while drawing), fullscreen /
   orientation lock / audio unlock inside the DOM gesture (a rAF frame isn't one), the wake lock, a rotate screen,
   the manifest. A future `@kindling/ui` helper could take the tap-target registry; it's small and game-shaped for now.
-

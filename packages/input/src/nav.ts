@@ -37,6 +37,8 @@ export const NAV_EVERY = 0.1;
 
 export class MenuNavigator<A extends string> {
   private repeat: { dir: Dir4 | null; t: number }[] = [];
+  /** readDevices' repeat timers, by device handle (devices come and go, and their order changes with seats). */
+  private byHandle = new Map<string, { dir: Dir4 | null; t: number }>();
 
   constructor(public opts: NavOptions<A>) {}
 
@@ -53,13 +55,14 @@ export class MenuNavigator<A extends string> {
   /** Forget held directions (call when a menu opens, so a held stick doesn't fire mid-repeat). */
   reset(): void {
     this.repeat = [];
+    this.byHandle.clear();
   }
 
   /** One pad's step this frame (advances its repeat timer). */
-  private one(p: PadState<A>, i: number, now: number): NavInput<A> {
+  private one(p: PadState<A>, i: number, now: number, rec?: { dir: Dir4 | null; t: number }): NavInput<A> {
     const o = this.opts;
     const n: NavInput<A> = { dx: 0, dy: 0, confirm: false, back: false, seat: -1, pressed: {} };
-    const r = (this.repeat[i] ??= { dir: null, t: 0 });
+    const r = rec ?? (this.repeat[i] ??= { dir: null, t: 0 });
     if (!p.connected) {
       r.dir = null;
       return n;
@@ -115,5 +118,46 @@ export class MenuNavigator<A extends string> {
    */
   readEach(pads: readonly PadState<A>[], now: number): NavInput<A>[] {
     return pads.map((p, i) => this.one(p, i, now));
+  }
+
+  /**
+   * Every connected device merged, seated or not (InputManager.deviceList(): a menu anyone can drive, including a
+   * device that left its seat, which can't rejoin by a direction alone). Repeat timers are kept per device handle,
+   * apart from read() / readEach()'s per-seat ones, so a game can read seats and devices in the same frame.
+   * `seat` is the index in `devices` that acted first; `handle` its handle.
+   */
+  readDevices(
+    devices: readonly { handle: string; state: PadState<A> }[],
+    now: number,
+  ): NavInput<A> & { handle: string | null } {
+    const n: NavInput<A> & { handle: string | null } = {
+      dx: 0,
+      dy: 0,
+      confirm: false,
+      back: false,
+      seat: -1,
+      pressed: {},
+      handle: null,
+    };
+    const live = new Set<string>();
+    devices.forEach((d, i) => {
+      live.add(d.handle);
+      let r = this.byHandle.get(d.handle);
+      if (!r) this.byHandle.set(d.handle, (r = { dir: null, t: 0 }));
+      const e = this.one(d.state, i, now, r);
+      if ((e.dx || e.dy) && !n.dx && !n.dy) {
+        n.dx = e.dx;
+        n.dy = e.dy;
+      }
+      n.confirm ||= e.confirm;
+      n.back ||= e.back;
+      Object.assign(n.pressed, e.pressed);
+      if (e.seat >= 0 && n.seat < 0) {
+        n.seat = i;
+        n.handle = d.handle;
+      }
+    });
+    for (const h of [...this.byHandle.keys()]) if (!live.has(h)) this.byHandle.delete(h);
+    return n;
   }
 }
