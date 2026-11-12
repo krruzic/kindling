@@ -89,6 +89,12 @@ bit-identical to its RNG: the determinism baseline held until the hash switched 
   music. Tracks can now stream (`stream: true`: an HTMLAudioElement through a MediaElementAudioSourceNode, crossfaded
   like decoded ones; the old stream is paused once its fade ends; never prefetched; `element` option for fakes).
   Test: "music: streamed tracks play through a media element, crossfade and get paused after their fade".
+- **@kindling/audio volume sliders were linear / squared.** QUICKLORE's owner: "music on 1 is still really loud" (a
+  linear tenth is only -20 dB, and every step above it sounds nearly the same). New `curve: "db"` (with `dbRange`,
+  default 40): level 1 = 0 dB, each step down the same number of dB (a tenth of the slider -36 dB), 0 truly silent;
+  `levelGain()` exposes the mapping, `setVolumeStep(bus, step, steps)` takes slider steps, and level changes ramp
+  over `levelRamp` (50 ms) so dragging a slider doesn't click. Test: "volume: the db taper: 0 silent, even dB
+  steps, a tenth genuinely quiet; a level change ramps (no click)".
 - **@kindling/audio `MusicPlayer` had no speed control.** QUICKLORE's last minute speeds the run's music up (a "hurry
   up!"). `setRate(rate, ramp)` ramps the playing track's speed (decoded: its playbackRate param; streamed: the media
   element's playbackRate frame by frame, preservesPitch off so the pitch rises with it); a new track starts at the

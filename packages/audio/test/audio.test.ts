@@ -2,7 +2,7 @@
 // Ceefax bug), bus routing and levels, spatial placement, ducking, the sample bank, ambience and music crossfade.
 import { Ambience } from "../src/ambience.ts";
 import { SampleBank, groupVariants } from "../src/bank.ts";
-import { AudioEngine } from "../src/engine.ts";
+import { AudioEngine, levelGain } from "../src/engine.ts";
 import { MusicPlayer } from "../src/music.ts";
 import { lean, place, type Hearing } from "../src/spatial.ts";
 import { VoiceLimiter } from "../src/limit.ts";
@@ -66,12 +66,35 @@ test("routing: buses hang off master; ambience under sfx; levels use the squared
   for (const b of ["sfx", "music", "ambience"]) ok((a.bus(b) as unknown as FakeGain).reaches(dest), b);
   ok((a.bus("ambience") as unknown as FakeGain).reaches(a.bus("sfx") as unknown as FakeGain), "ambience -> sfx");
   ok(!(a.bus("music") as unknown as FakeGain).reaches(a.bus("sfx") as unknown as FakeGain), "music not under sfx");
+  // (a level change ramps: the last scheduled value is where it's going)
+  const goal = (b: string) => (a.bus(b) as unknown as FakeGain).gain.events.at(-1)![1];
   a.setLevel("music", 0.5);
-  near((a.bus("music") as unknown as FakeGain).gain.value, 0.25);
+  near(goal("music"), 0.25);
   a.setLevel("sfx", 0.8);
-  near((a.bus("sfx") as unknown as FakeGain).gain.value, 0.64);
+  near(goal("sfx"), 0.64);
   // ambience trims 0.28 of its own level
   near((a.bus("ambience") as unknown as FakeGain).gain.value, 0.28);
+});
+
+test("volume: the db taper: 0 silent, even dB steps, a tenth genuinely quiet; a level change ramps (no click)", () => {
+  eq(levelGain(0, "db"), 0);
+  near(levelGain(1, "db"), 1, 1e-12);
+  const db = (v: number) => 20 * Math.log10(levelGain(v, "db"));
+  near(db(0.1), -36, 1e-9, "step 1 of 10");
+  for (let k = 2; k <= 10; k++) near(db(k / 10) - db((k - 1) / 10), 4, 1e-9, `step ${k}`);
+  near(20 * Math.log10(levelGain(0.1, "db", 45)), -40.5, 1e-9, "a wider range");
+  const fc = new FakeContext();
+  const a = new AudioEngine({ createContext: () => asCtx(fc), curve: "db" });
+  a.unlock();
+  fc.currentTime = 3;
+  a.setVolumeStep("music", 5, 10);
+  const ev = (a.bus("music") as unknown as FakeGain).gain.events;
+  const last = ev.at(-1)!;
+  eq(last[0], "linear", "ramped");
+  near(last[1]!, levelGain(0.5, "db"), 1e-12);
+  near(last[2]!, 3.05, 1e-9, "over 50 ms");
+  a.setVolumeStep("music", 0, 10);
+  eq(ev.at(-1)![1], 0, "step 0: silent");
 });
 
 test("routing: play goes to its bus through placement (gain -> lowpass -> pan)", () => {

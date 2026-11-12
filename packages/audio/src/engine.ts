@@ -1,7 +1,8 @@
 // AudioEngine: the WebAudio graph and voice management.
 //
-//   buses     sfx, music and ambience (plus any the game adds) -> master -> compressor -> speakers. Levels can use
-//             a squared curve so the low end of a 0..1 slider is actually quiet.
+//   buses     sfx, music and ambience (plus any the game adds) -> master -> compressor -> speakers. Levels go
+//             through a curve so the low end of a 0..1 slider is actually quiet: "db" (a perceptual taper: even
+//             steps in dB, 0 silent), "squared" or "linear". Level changes ramp briefly (no click on a slider).
 //   play()    a random variant of a sample id (bank.ts) with pitch jitter, through an optional spatial placement
 //             (gain -> low-pass when muffled -> pan -> bus). A voice budget caps simultaneous samples: past it,
 //             a sound with higher priority steals the quietest-priority oldest voice, `priority: true` always
@@ -33,8 +34,16 @@ export interface AudioEngineOpts {
   createContext?: () => AudioContext;
   /** Extra buses beyond sfx / music / ambience. */
   buses?: Record<string, BusSpec>;
-  /** "squared": level 0.1 is -20 dB (default); "linear": as given. */
-  curve?: "squared" | "linear";
+  /**
+   * How a 0..1 level becomes gain. "db": a perceptual taper, 1 = 0 dB and every step down the same number of dB
+   * (`dbRange` over the slider: 40 puts a tenth at -36 dB), 0 silent; "squared": level 0.1 is -20 dB (default);
+   * "linear": as given.
+   */
+  curve?: "squared" | "linear" | "db";
+  /** The "db" curve's span (dB from level 1 down to level 0+; default 40). */
+  dbRange?: number;
+  /** Seconds a level change ramps over (default 0.05: no click). */
+  levelRamp?: number;
   /** Random source for jitter and variants (presentation only, so Math.random is fine). */
   rng?: () => number;
   bank?: BankOpts;
@@ -185,7 +194,7 @@ export class AudioEngine {
   }
 
   private curve(v: number): number {
-    return this.o.curve === "linear" ? v : v * v;
+    return levelGain(v, this.o.curve, this.o.dbRange);
   }
 
   get ready(): boolean {
@@ -212,7 +221,7 @@ export class AudioEngine {
     return b.node;
   }
 
-  /** Sets a bus level (0..1 slider value; the curve applies). Works before unlock too. */
+  /** Sets a bus level (0..1 slider value; the curve applies), ramping briefly. Works before unlock too. */
   setLevel(name: string, level: number): void {
     const spec = (this.specs[name] ??= { level });
     spec.level = level;
@@ -220,11 +229,25 @@ export class AudioEngine {
     if (!b) return;
     b.level = level;
     const v = this.curve(level) * b.trim;
+    const ramp = this.o.levelRamp ?? 0.05;
+    if (this.ctx && ramp > 0) {
+      const now = this.ctx.currentTime;
+      const g = b.node.gain;
+      g.cancelScheduledValues(now);
+      g.setValueAtTime(g.value, now);
+      g.linearRampToValueAtTime(v, now + ramp);
+      return;
+    }
     if (this.ctx) {
       b.node.gain.cancelScheduledValues(this.ctx.currentTime);
       b.node.gain.setValueAtTime(v, this.ctx.currentTime);
     }
     b.node.gain.value = v;
+  }
+
+  /** A slider step (0..steps) as a bus level: step 0 silent, the curve does the rest. */
+  setVolumeStep(name: string, step: number, steps: number): void {
+    this.setLevel(name, steps > 0 ? Math.max(0, Math.min(steps, step)) / steps : 0);
   }
 
   level(name: string): number {
@@ -432,4 +455,12 @@ export class AudioEngine {
       p.setTargetAtTime(base, now + attack + hold, o.release ?? 0.5);
     }
   }
+}
+
+/** The gain a 0..1 level gives on a curve (see AudioEngineOpts.curve); 0 is always silent. */
+export function levelGain(v: number, curve: "squared" | "linear" | "db" = "squared", dbRange = 40): number {
+  if (v <= 0) return 0;
+  if (curve === "linear") return v;
+  if (curve === "db") return Math.pow(10, (-(1 - Math.min(1, v)) * dbRange) / 20);
+  return v * v;
 }
