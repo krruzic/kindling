@@ -93,6 +93,15 @@ bit-identical to its RNG: the determinism baseline held until the hash switched 
   cursor needs one step per pad, but `read(pads, now, only)` merges, and reading one seat at a time with `only`
   reset every other seat's repeat timer (so a held direction never repeated). New `readEach(pads, now)`: each pad's
   own steps, presses and repeat timer. Test: "nav: readEach gives every seat its own steps and repeat timer".
+- **@kindling/input: a pad unplugged mid-match never came back.** Seats remember the key of the device that dropped
+  (so it rejoins the same seat), but rejoining only happened in assignSeats, which only runs while `joining` is on
+  (join screens); mid-match QUICKLORE turns joining off, so a controller that blinked out (a USB hub hiccup) was gone
+  until the menus, for every player on the hub at once. New: a seat that loses its device to a disconnect is
+  `orphaned(seat)`; every poll, whatever `joining` says, the same device (key = pad id, at any index; HID pads by
+  their key) gets its seat straight back, and with `adoptOrphans` (default on) and joining off, another unseated
+  device's join press takes over an orphaned seat (that press doesn't act). `release()` forgets an orphan. Tests:
+  "seats: mid-match (joining off) a pad that unplugs gets its seat back...", "seats: mid-match, another pad's A
+  takes over an orphaned seat...".
 - **@kindling/audio had no per-view ownership or voice limits.** Split screen played every player's minor sounds
   (coin ticks, gems, swings) through every view at full level, and four players picking things up at once was a wall
   of the same blip: the engine's only cap was a global voice count plus one-per-name-per-frame. New: a `Listener.owner`

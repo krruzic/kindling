@@ -86,6 +86,12 @@ export interface InputOptions<A extends string> {
   joinActions?: A[];
   /** The press that seats a device also acts (default false: it's swallowed until released). */
   joinPressCounts?: boolean;
+  /**
+   * A seat whose device disconnected (not released) is orphaned. Even with `joining` off (mid-match): the same
+   * device coming back (its key: the pad id, at any index) gets the seat straight back, and with `adoptOrphans` any
+   * unseated device pressing a join button takes over an orphaned seat. Default true.
+   */
+  adoptOrphans?: boolean;
   /** The game's own glyph per action (prompts show these by default). */
   labels?: Partial<Record<A, ActionLabel>>;
 }
@@ -191,6 +197,8 @@ export class InputManager<A extends string> {
   private devs = new Map<string, Device<A>>();
   private seats: (string | null)[];
   private lastKey: (string | null)[];
+  /** Seats whose device disconnected (reclaimable mid-match), see InputOptions.adoptOrphans. */
+  private orphan: boolean[];
   private waitRelease = new Set<string>();
   private lastHandle: string | null = null;
   private now = 0;
@@ -203,6 +211,7 @@ export class InputManager<A extends string> {
     this.players = Array.from({ length: n }, () => emptyPad(opts.actions));
     this.seats = Array.from({ length: n }, () => null);
     this.lastKey = Array.from({ length: n }, () => null);
+    this.orphan = Array.from({ length: n }, () => false);
     this.keyboard = opts.keyboard ?? new KeyboardInput();
     this.remaps = opts.remaps instanceof RemapStore ? opts.remaps : new RemapStore(opts.remaps ?? {});
     this.profiles = [...(opts.profiles ?? []), ...BUILTIN_PROFILES];
@@ -239,6 +248,7 @@ export class InputManager<A extends string> {
       this.session.update(this.devs.get(this.session.device), now);
       if (!this.session.active) this.endSession();
     }
+    this.reclaimOrphans();
     if (this.joining) this.assignSeats();
     for (const d of this.devs.values()) this.updateState(d);
     for (let s = 0; s < this.seats.length; s++) {
@@ -287,7 +297,8 @@ export class InputManager<A extends string> {
     }
     const dz = this.opts.stickDeadzone ?? 0.2;
     // (a touch stick comes already shaped: its own deadzone, full tilt at its radius)
-    const main: [number, number] = p.family === "touch" ? [p.stick[0], p.stick[1]] : radialDeadzone(p.stick[0], p.stick[1], dz);
+    const main: [number, number] =
+      p.family === "touch" ? [p.stick[0], p.stick[1]] : radialDeadzone(p.stick[0], p.stick[1], dz);
     d.stick = [...main, ...radialDeadzone(p.cstick[0], p.cstick[1], dz)];
     d.lt = Math.min(1, d.sources.get("lt")?.trig.travel ?? 0);
     d.rt = Math.min(1, d.sources.get("rt")?.trig.travel ?? 0);
@@ -436,6 +447,7 @@ export class InputManager<A extends string> {
       const h = this.seats[s];
       if (h === null || this.devs.has(h)) continue;
       this.seats[s] = null;
+      this.orphan[s] = true;
       this.onLeave(s, h, "disconnect");
     }
     for (const h of this.waitRelease) if (!this.devs.has(h)) this.waitRelease.delete(h);
@@ -453,6 +465,43 @@ export class InputManager<A extends string> {
       return this.actions.some((a) => b[a].some((s) => !!d.sources.get(s)?.on));
     }
     return d.anyOn();
+  }
+
+  /** Whether seat `s` lost its device to a disconnect and is waiting for it (or for another pad's A). */
+  orphaned(s: number): boolean {
+    return !!this.orphan[s];
+  }
+
+  /**
+   * Orphaned seats, whatever `joining` says: the device that left comes back to its seat at once (same key, any
+   * index); else, with adoptOrphans and `joining` off (mid-match), the first unseated device pressing a join button
+   * takes the oldest orphan (its press doesn't act).
+   */
+  private reclaimOrphans(): void {
+    if (!this.orphan.some(Boolean)) return;
+    for (const [h, d] of this.devs) {
+      if (this.seats.includes(h) || d.kind === "keyboard" || this.session?.device === h) continue;
+      const s = this.seats.findIndex((x, i) => x === null && this.orphan[i] && this.lastKey[i] === d.key);
+      if (s >= 0) {
+        this.waitRelease.delete(h);
+        this.seat(h, s);
+        continue;
+      }
+      // (taking over someone else's seat: mid-match only; on a join screen a new pad takes a free seat as usual)
+      if (this.joining || this.opts.adoptOrphans === false || this.waitRelease.has(h) || !this.wantsSeat(d)) continue;
+      const o = this.orphan.findIndex((x, i) => x && this.seats[i] === null && !this.blocked[i]);
+      if (o < 0) return;
+      this.seat(h, o);
+      d.suppressHeld();
+    }
+  }
+
+  private seat(h: string, s: number): void {
+    const d = this.devs.get(h)!;
+    this.seats[s] = h;
+    this.lastKey[s] = d.key;
+    this.orphan[s] = false;
+    this.onJoin(s, h);
   }
 
   private assignSeats(): void {
@@ -475,11 +524,12 @@ export class InputManager<A extends string> {
     const free = (i: number) => this.seats[i] === null && !this.blocked[i];
     let s = seat !== undefined && free(seat) ? seat : -1;
     if (s < 0) s = this.seats.findIndex((_, i) => free(i) && this.lastKey[i] === d.key);
-    if (s < 0) s = this.seats.findIndex((_, i) => free(i) && this.lastKey[i] === null);
+    if (s < 0) s = this.seats.findIndex((_, i) => free(i) && this.lastKey[i] === null && !this.orphan[i]);
     if (s < 0) s = this.seats.findIndex((_, i) => free(i));
     if (s < 0) return -1;
     this.seats[s] = handle;
     this.lastKey[s] = d.key;
+    this.orphan[s] = false;
     if (!this.opts.joinPressCounts) d.suppressHeld();
     this.onJoin(s, handle);
     return s;
@@ -488,9 +538,15 @@ export class InputManager<A extends string> {
   /** Frees a seat; its device must release every button before it can rejoin. */
   release(seat: number): void {
     const h = this.seats[seat];
-    if (h === null || h === undefined) return;
+    if (h === null || h === undefined) {
+      // an orphaned seat given up: nobody is waited for
+      this.orphan[seat] = false;
+      this.lastKey[seat] = null;
+      return;
+    }
     this.seats[seat] = null;
     this.lastKey[seat] = null;
+    this.orphan[seat] = false;
     this.waitRelease.add(h);
     this.players[seat] = emptyPad(this.actions);
     this.onLeave(seat, h, "release");

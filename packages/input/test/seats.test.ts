@@ -184,3 +184,63 @@ test("keyboard: a tap between polls still registers; typing mutes keys; mouse on
   step();
   eq(input.seatOf("keyboard-1"), -1, "keyboard off drops its seat");
 });
+
+test("seats: mid-match (joining off) a pad that unplugs gets its seat back on reconnect, at any index, at once", () => {
+  const { input, pads, step } = setup();
+  const a = new FakePad(XBOX_ID, 0);
+  const b = new FakePad(DS4_ID, 1);
+  pads.push(a, b);
+  a.press(0);
+  step();
+  b.press(0);
+  step();
+  a.up(0);
+  b.up(0);
+  step();
+  input.joining = false;
+  pads[0] = null;
+  step();
+  ok(input.orphaned(0), "seat 0 waits for its pad");
+  eq(input.players[0].connected, false);
+  // the same pad comes back at another index: no press needed, its input is live again
+  const back = new FakePad(XBOX_ID, 2);
+  pads[2] = back;
+  step();
+  eq(input.seatOf("pad-2"), 0, "back in its seat");
+  ok(!input.orphaned(0));
+  back.press(12);
+  step();
+  eq(input.players[0].held.up, true, "and it plays");
+});
+
+test("seats: mid-match, another pad's A takes over an orphaned seat (the press doesn't act); not on join screens", () => {
+  const { input, pads, step } = setup();
+  const a = new FakePad(XBOX_ID, 0);
+  pads.push(a);
+  a.press(0);
+  step();
+  a.up(0);
+  step();
+  input.joining = false;
+  pads[0] = null;
+  step();
+  const c = new FakePad("Logitech Dual Action (Vendor: 046d Product: c216)", 1, "");
+  pads[1] = c;
+  step();
+  eq(input.seatOf("pad-1"), -1, "a new pad doesn't just take it");
+  c.press(1);
+  step();
+  eq(input.seatOf("pad-1"), 0, "its A takes the orphaned seat");
+  eq(input.players[0].pressed.jump || input.players[0].pressed.attack, false, "that press doesn't act");
+  // releasing an orphan forgets it
+  const { input: i2, pads: p2, step: s2 } = setup();
+  const x = new FakePad(XBOX_ID, 0);
+  p2.push(x);
+  x.press(0);
+  s2();
+  p2[0] = null;
+  s2();
+  ok(i2.orphaned(0));
+  i2.release(0);
+  ok(!i2.orphaned(0));
+});

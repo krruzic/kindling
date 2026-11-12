@@ -158,3 +158,9 @@ It joins a seat like any pad (on a button press while joining, or `input.join(to
 comes through unshaped by `stickDeadzone` (it has its own). Show the controls while `touch.lastTouch` is the most
 recent input. See docs/INTEGRATION_NOTES.md (QUICKLORE touch) for what a game still does itself: drawing, the
 layout in millimetres and safe areas, menus by tap, the page plumbing.
+
+### Disconnects mid-match
+
+A seat whose device unplugs is `orphaned(seat)`. Even with `joining` off, the same device (by key, any index) gets
+it straight back on reconnect; with `adoptOrphans` (default true) another unseated device pressing a join button
+takes it over (mid-match only). Show the player a note while `orphaned(seat)` is true.
