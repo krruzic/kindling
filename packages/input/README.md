@@ -164,3 +164,9 @@ layout in millimetres and safe areas, menus by tap, the page plumbing.
 A seat whose device unplugs is `orphaned(seat)`. Even with `joining` off, the same device (by key, any index) gets
 it straight back on reconnect; with `adoptOrphans` (default true) another unseated device pressing a join button
 takes it over (mid-match only). Show the player a note while `orphaned(seat)` is true.
+
+### Touch input on iOS
+
+`TouchPad.attach(el)` listens to Touch Events where the browser has them (non-passive, default-prevented), pointer
+events for a mouse / pen; `attach(el, { events: "pointer" })` forces pointers. `pad.onTrace = (t) => ...` logs every
+touch for a diagnostic overlay.

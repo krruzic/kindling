@@ -93,6 +93,15 @@ bit-identical to its RNG: the determinism baseline held until the hash switched 
   cursor needs one step per pad, but `read(pads, now, only)` merges, and reading one seat at a time with `only`
   reset every other seat's repeat timer (so a held direction never repeated). New `readEach(pads, now)`: each pad's
   own steps, presses and repeat timer. Test: "nav: readEach gives every seat its own steps and repeat timer".
+- **@kindling/input TouchPad touches went through Pointer Events only.** On recent iOS Safari (reported: an
+  iPhone 15, the right-hand buttons fine, the left stick dead) a drag can be claimed by the browser (a scroll / edge
+  gesture) and the pointer cancelled or its capture lost straight away, while taps (buttons latch on down) still
+  work: exactly that symptom. attach() now takes touches through Touch Events where they exist (each finger by
+  identifier, every touchstart / touchmove default-prevented non-passively, document touchmove too), keeping
+  pointer events (with capture) for a mouse / pen; `events: "pointer"` keeps the old path. `onTrace` reports every
+  touch (type, id, position, target, what it took) for an on-device diagnostic (QUICKLORE's ?touchdebug). Not
+  reproducible without the device: Chromium's emulation passes either way; the stick zone maths (QUICKLORE: the zone
+  now reaches the screen edge under a 59 px Dynamic Island inset) has tests.
 - **@kindling/input: a pad unplugged mid-match never came back.** Seats remember the key of the device that dropped
   (so it rejoins the same seat), but rejoining only happened in assignSeats, which only runs while `joining` is on
   (join screens); mid-match QUICKLORE turns joining off, so a controller that blinked out (a USB hub hiccup) was gone

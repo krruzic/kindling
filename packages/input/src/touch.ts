@@ -14,9 +14,10 @@
 // Pointers: one finger per control. A second finger landing in the stick zone while the stick is held is ignored
 // (palms, a resting thumb); fingers outside every control are ignored for play but reported as taps (`drainTaps`)
 // so a game can use them for its menus. pointercancel releases whatever that pointer held (no stuck buttons).
-// DOM (attach): pointer events with pointer capture, `touch-action: none`, and the page's scroll / pinch zoom /
-// long-press menu / text selection / double-tap zoom suppressed on the element. Node tests drive the pointer
-// methods (down / move / up / cancel) directly.
+// DOM (attach): Touch Events where the browser has them (each finger by identifier, every touchstart / touchmove
+// default-prevented), pointer events with capture for a mouse / pen; `touch-action: none`, and the page's scroll /
+// pinch zoom / long-press menu / text selection / double-tap zoom suppressed. `onTrace` reports every touch for an
+// on-device diagnostic. Node tests drive the pointer methods (down / move / up / cancel) directly.
 import type { ExternalPad, PadProvider } from "./manager.ts";
 import type { GamepadLike, PadButton } from "./types.ts";
 
@@ -305,18 +306,42 @@ export class TouchPad implements PadProvider {
   // --- DOM ----------------------------------------------------------------------------------------------------------
 
   /**
-   * Wires an element's pointer events (CSS px relative to the element's box) and stops the page from scrolling,
-   * zooming, selecting text or opening the long-press menu while it's touched. Returns a detach function.
+   * Every touch the DOM layer sees, for an on-device diagnostic: down / move / up / cancel (and why), the pointer id,
+   * CSS px, the target and what it took (stick, a button, nothing).
    */
-  attach(el: HTMLElement): () => void {
+  onTrace: ((t: { type: string; id: number; x: number; y: number; target: string; took: string }) => void) | null =
+    null;
+
+  private trace(type: string, id: number, x: number, y: number, target: EventTarget | null): void {
+    if (!this.onTrace) return;
+    const p = this.ptrs.get(id);
+    const el = target as HTMLElement | null;
+    const tname = el?.tagName ? `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}` : "?";
+    this.onTrace({ type, id, x: Math.round(x), y: Math.round(y), target: tname, took: p ? p.kind : "-" });
+  }
+
+  /**
+   * Wires an element's input (CSS px relative to the element's box) and stops the page from scrolling, zooming,
+   * selecting text or opening the long-press menu while it's touched. Returns a detach function.
+   * Touches: by default through Touch Events where the browser has them (every phone and tablet), each finger by its
+   * identifier, every touchstart / touchmove default-prevented (non-passive), so a drag is never claimed as a
+   * scroll or an edge swipe and turned into a cancel. Pointer events (with capture) are only for a mouse / pen
+   * (`mouse` debugging), or for touches where there are no Touch Events. `events: "pointer"` forces the old path.
+   */
+  attach(el: HTMLElement, o: { events?: "auto" | "touch" | "pointer" } = {}): () => void {
     const st = el.style as CSSStyleDeclaration & { webkitUserSelect?: string; webkitTouchCallout?: string };
     st.touchAction = "none";
     st.userSelect = "none";
     st.webkitUserSelect = "none";
     st.webkitTouchCallout = "none";
-    const ours = (e: PointerEvent) => e.pointerType === "touch" || e.pointerType === "pen" || this.mouse;
-    const pos = (e: PointerEvent): [number, number] => {
-      const r = el.getBoundingClientRect();
+    const touchApi =
+      o.events === "touch" || (o.events !== "pointer" && typeof window !== "undefined" && "ontouchstart" in window);
+    const box = () => el.getBoundingClientRect();
+    // pointers: touches only when there's no Touch Events path
+    const ours = (e: PointerEvent) =>
+      (e.pointerType === "touch" && !touchApi) || e.pointerType === "pen" || (e.pointerType === "mouse" && this.mouse);
+    const pos = (e: { clientX: number; clientY: number }): [number, number] => {
+      const r = box();
       return [e.clientX - r.left, e.clientY - r.top];
     };
     const onDown = (e: PointerEvent) => {
@@ -328,6 +353,7 @@ export class TouchPad implements PadProvider {
         // (a synthetic or already-gone pointer)
       }
       this.down(e.pointerId, ...pos(e));
+      this.trace("pointerdown", e.pointerId, ...pos(e), e.target);
     };
     const onMove = (e: PointerEvent) => {
       if (!ours(e) || !this.ptrs.has(e.pointerId)) return;
@@ -337,39 +363,76 @@ export class TouchPad implements PadProvider {
     const onUp = (e: PointerEvent) => {
       if (!ours(e)) return;
       e.preventDefault();
+      this.trace("pointerup", e.pointerId, ...pos(e), e.target);
       this.up(e.pointerId);
     };
-    const onCancel = (e: PointerEvent) => this.cancel(e.pointerId);
+    const onCancel = (e: PointerEvent) => {
+      if (!ours(e)) return;
+      this.trace(e.type, e.pointerId, ...pos(e), e.target);
+      this.cancel(e.pointerId);
+    };
+    // touches: ids offset so they never meet a pointer id
+    const T = 1_000_000;
+    const each = (e: TouchEvent, f: (id: number, x: number, y: number) => void) => {
+      for (const t of Array.from(e.changedTouches)) f(T + t.identifier, ...pos(t));
+    };
+    let moves = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+      each(e, (id, x, y) => {
+        this.down(id, x, y);
+        this.trace("touchstart", id, x, y, e.target);
+      });
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+      each(e, (id, x, y) => {
+        this.move(id, x, y);
+        // (one move in eight: the log shows the drag without drowning in it)
+        if (moves++ % 8 === 0) this.trace("touchmove", id, x, y, e.target);
+      });
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+      each(e, (id, x, y) => {
+        this.trace(e.type, id, x, y, e.target);
+        if (e.type === "touchcancel") this.cancel(id);
+        else this.up(id);
+      });
+    };
     const stop = (e: Event) => e.preventDefault();
     const onHide = () => {
       if (document.hidden) this.releaseAll();
     };
     const opts = { passive: false } as AddEventListenerOptions;
-    el.addEventListener("pointerdown", onDown, opts);
-    el.addEventListener("pointermove", onMove, opts);
-    el.addEventListener("pointerup", onUp, opts);
-    el.addEventListener("pointercancel", onCancel);
-    el.addEventListener("lostpointercapture", onCancel);
-    // no scroll / pinch / double-tap zoom / long-press menu / selection while playing
-    el.addEventListener("touchstart", stop, opts);
-    el.addEventListener("touchmove", stop, opts);
-    el.addEventListener("contextmenu", stop);
-    el.addEventListener("selectstart", stop);
-    el.addEventListener("gesturestart", stop as EventListener, opts);
-    document.addEventListener("visibilitychange", onHide);
-    window.addEventListener("blur", () => this.releaseAll());
+    const on: [EventTarget, string, EventListener, AddEventListenerOptions?][] = [
+      [el, "pointerdown", onDown as EventListener, opts],
+      [el, "pointermove", onMove as EventListener, opts],
+      [el, "pointerup", onUp as EventListener, opts],
+      [el, "pointercancel", onCancel as EventListener],
+      [el, "lostpointercapture", onCancel as EventListener],
+      [el, "contextmenu", stop],
+      [el, "selectstart", stop],
+      [el, "gesturestart", stop, opts],
+      [document, "visibilitychange", onHide],
+    ];
+    if (touchApi)
+      on.push(
+        [el, "touchstart", onTouchStart as EventListener, opts],
+        [el, "touchmove", onTouchMove as EventListener, opts],
+        [el, "touchend", onTouchEnd as EventListener, opts],
+        [el, "touchcancel", onTouchEnd as EventListener, opts],
+      );
+    // no scroll / pinch / double-tap zoom anywhere on the page while a finger is down (iOS: a drag that the page
+    // could scroll is otherwise taken as a scroll and the touch cancelled)
+    else on.push([el, "touchstart", stop, opts], [el, "touchmove", stop, opts]);
+    if (typeof document !== "undefined") on.push([document, "touchmove", stop, opts]);
+    for (const [t, k, f, op] of on) t.addEventListener(k, f, op);
+    const blur = () => this.releaseAll();
+    window.addEventListener("blur", blur);
     return () => {
-      el.removeEventListener("pointerdown", onDown);
-      el.removeEventListener("pointermove", onMove);
-      el.removeEventListener("pointerup", onUp);
-      el.removeEventListener("pointercancel", onCancel);
-      el.removeEventListener("lostpointercapture", onCancel);
-      el.removeEventListener("touchstart", stop);
-      el.removeEventListener("touchmove", stop);
-      el.removeEventListener("contextmenu", stop);
-      el.removeEventListener("selectstart", stop);
-      el.removeEventListener("gesturestart", stop as EventListener);
-      document.removeEventListener("visibilitychange", onHide);
+      for (const [t, k, f] of on) t.removeEventListener(k, f);
+      window.removeEventListener("blur", blur);
     };
   }
 }
