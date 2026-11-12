@@ -325,6 +325,50 @@ test("music: streamed tracks play through a media element, crossfade and get pau
   eq(fc.sources.filter((s) => s.kind === "source" && s.buffer && s.buffer.duration !== 1).length, 0, "nothing decoded");
 });
 
+test("music: setRate speeds the track up over a ramp (pitch with it), new tracks start at the rate, and back", async () => {
+  const { a, fc } = engine();
+  const els: FakeMedia[] = [];
+  const music = new MusicPlayer(
+    a,
+    { run: { url: "run.mp3" }, title: { url: "title.ogg", stream: true } },
+    {
+      load: async () => asBuf(new FakeBuffer(3)),
+      prefetch: false,
+      element: (u) => (els.push(new FakeMedia(u)), els[els.length - 1]),
+    },
+  );
+  music.set("run");
+  music.update();
+  await new Promise((r) => setTimeout(r, 0));
+  music.update();
+  const src = fc.sources[fc.sources.length - 1] as FakeSource;
+  fc.currentTime = 4;
+  music.setRate(1.2, 1);
+  music.update();
+  ok(
+    src.playbackRate.events.some(([k, v, t]) => k === "linear" && Math.abs(v! - 1.2) < 1e-9 && Math.abs(t! - 5) < 1e-9),
+    "ramped over a second",
+  );
+  fc.currentTime = 4.5;
+  near(music.playbackRate, 1.1, 1e-9, "halfway");
+  fc.currentTime = 6;
+  near(music.playbackRate, 1.2, 1e-9);
+  // a streamed track picks the rate up (pitch rising with it)
+  music.set("title");
+  music.update();
+  eq(els.length, 1);
+  near(els[0].playbackRate!, 1.2, 1e-9);
+  eq(els[0].preservesPitch, false);
+  music.setRate(1, 0.5);
+  music.update();
+  fc.currentTime = 6.25;
+  music.update();
+  near(els[0].playbackRate!, 1.1, 1e-9, "easing back");
+  fc.currentTime = 7;
+  music.update();
+  near(els[0].playbackRate!, 1, 1e-9, "back to normal");
+});
+
 test("spatial: a minor sound is heard through its owner's view only; another player's (no view here) is quiet", () => {
   const view = (x: number, left: number, owner: number) => ({ x, z: 0, range: 100, left, span: 0.5, owner });
   const h: Hearing = { views: [view(0, 0, 1), view(10, 0.5, 2)], own: new Set([1, 2]) };

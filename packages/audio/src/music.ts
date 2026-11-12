@@ -1,7 +1,8 @@
 // Music: one looping track per screen (menu, select, battle, results), cross-faded when the wanted track
 // changes, with an optional duck level (music under a pause menu or a dialog). Tracks load lazily: the wanted one
 // first, then the rest in the background once something plays, so a screen change doesn't wait on the network.
-// Call set() whenever the screen decides, and update() every frame.
+// Call set() whenever the screen decides, and update() every frame. setRate() speeds the music up (or back) over a
+// ramp, pitch rising with it like a tape (a game's "hurry up!"); a new track starts at the current rate.
 // Streamed tracks (`stream: true`) play through a media element (MediaElementAudioSourceNode) instead of being
 // decoded whole: a 2-minute track decodes to ~40 MB of PCM, so a game with a track per screen streams them.
 import type { AudioEngine } from "./engine.ts";
@@ -11,6 +12,9 @@ export interface MediaLike {
   loop: boolean;
   preload: string;
   currentTime: number;
+  /** Playback speed; with preservesPitch off it plays higher too (tape-style). */
+  playbackRate?: number;
+  preservesPitch?: boolean;
   play(): Promise<void> | void;
   pause(): void;
 }
@@ -52,6 +56,10 @@ export class MusicPlayer {
   private want: string | null = null;
   private duckTo = 1;
   private playedDuck = 1;
+  private wantRate = 1;
+  private rateRamp = 1;
+  /** The rate the playing track is at / heading for, and when its ramp started (context time). */
+  private rate = { from: 1, to: 1, at: 0, dur: 0 };
   /** Streams fading out: paused once their fade is over (a media element has no scheduled stop). */
   private fading: { el: MediaLike; at: number }[] = [];
 
@@ -65,6 +73,21 @@ export class MusicPlayer {
   set(name: string | null, duck = 1): void {
     this.want = name;
     this.duckTo = duck;
+  }
+
+  /** Playback speed (1 = normal; 1.15 = 15% faster and higher), reached over `ramp` seconds. */
+  setRate(rate: number, ramp = 1): void {
+    this.wantRate = rate;
+    this.rateRamp = ramp;
+  }
+
+  /** The playing track's speed right now. */
+  get playbackRate(): number {
+    const c = this.a.ctx;
+    const r = this.rate;
+    if (!c || r.dur <= 0) return r.to;
+    const k = Math.max(0, Math.min(1, (c.currentTime - r.at) / r.dur));
+    return r.from + (r.to - r.from) * k;
   }
 
   get current(): string | null {
@@ -124,6 +147,7 @@ export class MusicPlayer {
         gain.gain.setValueAtTime(0, now);
         gain.gain.linearRampToValueAtTime(level, now + fade);
         src.connect(gain).connect(this.a.bus(this.o.bus ?? "music"));
+        src.playbackRate.setValueAtTime(this.playbackRate, now);
         src.start(now + 0.05);
         this.playing = { name: this.want, src, el: null, gain };
         this.playedDuck = this.duckTo;
@@ -131,6 +155,21 @@ export class MusicPlayer {
     } else if (this.playing && this.o.prefetch !== false) {
       const next = Object.keys(this.tracks).find((k) => !this.bufs.has(k) && !this.tracks[k].stream);
       if (next) this.fetch(next);
+    }
+    // the speed: a new target ramps from where it is; a stream (no scheduled params) follows the ramp frame by frame
+    if (this.wantRate !== this.rate.to) {
+      const from = this.playbackRate;
+      this.rate = { from, to: this.wantRate, at: now, dur: this.rateRamp };
+      const pr = this.playing?.src?.playbackRate;
+      if (pr) {
+        pr.cancelScheduledValues(now);
+        pr.setValueAtTime(from, now);
+        pr.linearRampToValueAtTime(this.wantRate, now + Math.max(0.01, this.rateRamp));
+      }
+    }
+    if (this.playing?.el) {
+      this.playing.el.preservesPitch = false;
+      this.playing.el.playbackRate = this.playbackRate;
     }
     if (this.playing && this.playedDuck !== this.duckTo) {
       this.playedDuck = this.duckTo;

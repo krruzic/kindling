@@ -89,6 +89,11 @@ bit-identical to its RNG: the determinism baseline held until the hash switched 
   music. Tracks can now stream (`stream: true`: an HTMLAudioElement through a MediaElementAudioSourceNode, crossfaded
   like decoded ones; the old stream is paused once its fade ends; never prefetched; `element` option for fakes).
   Test: "music: streamed tracks play through a media element, crossfade and get paused after their fade".
+- **@kindling/audio `MusicPlayer` had no speed control.** QUICKLORE's last minute speeds the run's music up (a "hurry
+  up!"). `setRate(rate, ramp)` ramps the playing track's speed (decoded: its playbackRate param; streamed: the media
+  element's playbackRate frame by frame, preservesPitch off so the pitch rises with it); a new track starts at the
+  current rate. Test: "music: setRate speeds the track up over a ramp (pitch with it), new tracks start at the rate,
+  and back".
 - **@kindling/input `MenuNavigator` couldn't give per-seat input.** A select screen where every seat moves its own
   cursor needs one step per pad, but `read(pads, now, only)` merges, and reading one seat at a time with `only`
   reset every other seat's repeat timer (so a held direction never repeated). New `readEach(pads, now)`: each pad's

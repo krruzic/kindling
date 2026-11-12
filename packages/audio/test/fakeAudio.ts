@@ -180,6 +180,8 @@ export class FakeMedia {
   loop = false;
   preload = "";
   currentTime = 0;
+  playbackRate = 1;
+  preservesPitch = true;
   playing = false;
   node: FakeNode | null = null;
   constructor(public url: string) {}
