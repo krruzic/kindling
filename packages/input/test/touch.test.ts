@@ -168,3 +168,17 @@ test("touch: buttons first laid out after the pad joined (a menu had none) still
   input.poll(0.032);
   eq(input.players[0].held.item, true);
 });
+
+test("touch: holds() lists fingers held outside the controls (not on a button, not dragged), with their time", () => {
+  let now = 0;
+  const t = new TouchPad({ clock: () => now });
+  t.setLayout({ stick: null, buttons: [{ id: "east", x: 50, y: 50, r: 20 }] });
+  t.down(1, 500, 100);
+  t.down(2, 50, 50);
+  now = 0.5;
+  eq(t.holds(), [{ x: 500, y: 100, held: 0.5 }]);
+  t.move(1, 540, 100);
+  eq(t.holds(), [], "dragged away: no longer a hold");
+  t.up(1);
+  t.up(2);
+});

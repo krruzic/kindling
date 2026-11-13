@@ -206,6 +206,16 @@ export class TouchPad implements PadProvider {
     this.latched.clear();
   }
 
+  /** Fingers down now outside every control that haven't strayed (a menu's press-and-hold): where they started
+   * (CSS px) and how long they've been down (s). */
+  holds(): { x: number; y: number; held: number }[] {
+    const now = this.clock();
+    const out: { x: number; y: number; held: number }[] = [];
+    for (const p of this.ptrs.values())
+      if (p.kind === "none" && p.moved <= TAP_SLOP) out.push({ x: p.x0, y: p.y0, held: now - p.t0 });
+    return out;
+  }
+
   /** Taps since the last call (menus): position in CSS px, and whether they started on a control. */
   drainTaps(): TouchTap[] {
     const t = this.taps;
