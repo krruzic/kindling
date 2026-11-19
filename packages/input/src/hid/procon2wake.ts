@@ -62,6 +62,11 @@ export class ProCon2Waker {
     return d.vendorId === VENDOR && PRODUCTS.includes(d.productId);
   }
 
+  /** The browser picker's filters for the pads this wakes. */
+  static filters(): { vendorId: number; productId: number }[] {
+    return PRODUCTS.map((productId) => ({ vendorId: VENDOR, productId }));
+  }
+
   /** Asks the user for a pad to wake (needs a user gesture). */
   async request(): Promise<boolean> {
     const usb = webUsb();

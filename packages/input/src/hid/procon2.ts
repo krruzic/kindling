@@ -323,21 +323,32 @@ export async function requestHidPads(gc?: { adopt(d: HIDDeviceLike): Promise<voi
   const hid = webHid();
   if (!hid) return;
   try {
-    const ds = await hid.requestDevice({
-      filters: [
-        GC_FILTER,
-        ...[PRO2_PRODUCT, NSO_GC_PRODUCT, SWITCH1_PRO_PRODUCT].map((productId) => ({
-          vendorId: NINTENDO_VENDOR,
-          productId,
-        })),
-      ],
-    });
-    for (const d of ds) {
-      if (ProCon2.matches(d)) await pro?.open(d);
-      else await gc?.adopt(d);
-    }
+    await adoptHidPads(await hid.requestDevice({ filters: hidPadFilters() }), gc, pro);
   } catch {
     // The user dismissed the picker.
+  }
+}
+
+/** The browser picker's filters for every HID pad read here (GameCube adapter, Switch 2 / NSO GameCube / Pro). */
+export function hidPadFilters(): { vendorId: number; productId: number }[] {
+  return [
+    GC_FILTER,
+    ...[PRO2_PRODUCT, NSO_GC_PRODUCT, SWITCH1_PRO_PRODUCT].map((productId) => ({
+      vendorId: NINTENDO_VENDOR,
+      productId,
+    })),
+  ];
+}
+
+/** Hands picked HID devices to their readers. */
+export async function adoptHidPads(
+  ds: HIDDeviceLike[],
+  gc?: { adopt(d: HIDDeviceLike): Promise<void> },
+  pro?: ProCon2,
+): Promise<void> {
+  for (const d of ds) {
+    if (ProCon2.matches(d)) await pro?.open(d);
+    else await gc?.adopt(d);
   }
 }
 

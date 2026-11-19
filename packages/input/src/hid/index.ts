@@ -3,5 +3,6 @@
 export * from "./gcadapter.ts";
 export * from "./procon2.ts";
 export * from "./procon2wake.ts";
+export * from "./pairing.ts";
 export type * from "./webhid.ts";
 export { webHid, webUsb } from "./webhid.ts";
