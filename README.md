@@ -63,3 +63,8 @@ pnpm -r test
 
 Packages are consumed as TypeScript source (Vite in the browser, `node --experimental-transform-types` in node), so
 there is no build step. Conventions: [docs/CONVENTIONS.md](docs/CONVENTIONS.md).
+
+## License
+
+MIT: see [LICENSE](LICENSE). The example game's font is Barlow, under the SIL Open Font License
+(`examples/brawl/assets/ui/fonts/Barlow-OFL.txt`).
