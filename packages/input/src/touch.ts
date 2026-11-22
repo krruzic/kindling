@@ -103,7 +103,9 @@ export class TouchPad implements PadProvider {
   /** When a finger last touched (s; -Infinity = never): games show the controls while touch is the last input. */
   lastTouch = -Infinity;
   private ptrs = new Map<number, Ptr>();
-  private stickPtr = -1;
+  /** The pointer on the stick, or null. (Never a sign test: iOS hands out touch identifiers that are any 32-bit
+   * number, negative ones too.) */
+  private stickPtr: number | null = null;
   private sc = { x: 0, y: 0 };
   private sp = { x: 0, y: 0 };
   /** Buttons pressed since the last read (a tap shorter than a poll still counts once). */
@@ -129,7 +131,7 @@ export class TouchPad implements PadProvider {
     this.layout = l;
     for (const b of l.buttons) this.known.add(b.id);
     const s = l.stick;
-    if (s && this.stickPtr < 0) this.sc = { x: s.cx, y: s.cy };
+    if (s && this.stickPtr === null) this.sc = { x: s.cx, y: s.cy };
   }
 
   // --- pointers ---------------------------------------------------------------------------------------------------
@@ -149,7 +151,7 @@ export class TouchPad implements PadProvider {
       return;
     }
     const s = this.layout.stick;
-    if (s && this.stickPtr < 0 && this.takesStick(s, x, y)) {
+    if (s && this.stickPtr === null && this.takesStick(s, x, y)) {
       p.kind = "stick";
       this.stickPtr = id;
       if (s.mode === "floating") {
@@ -186,7 +188,7 @@ export class TouchPad implements PadProvider {
     const p = this.ptrs.get(id);
     if (!p) return;
     this.ptrs.delete(id);
-    if (p.kind === "stick") this.stickPtr = -1;
+    if (p.kind === "stick") this.stickPtr = null;
     if (this.clock() - p.t0 <= TAP_TIME && p.moved <= TAP_SLOP)
       this.taps.push({ x: p.x0, y: p.y0, onControl: p.kind === "button" });
   }
@@ -196,13 +198,13 @@ export class TouchPad implements PadProvider {
     const p = this.ptrs.get(id);
     if (!p) return;
     this.ptrs.delete(id);
-    if (p.kind === "stick") this.stickPtr = -1;
+    if (p.kind === "stick") this.stickPtr = null;
   }
 
   /** Let go of everything (focus lost, the page hidden). */
   releaseAll(): void {
     this.ptrs.clear();
-    this.stickPtr = -1;
+    this.stickPtr = null;
     this.latched.clear();
   }
 
@@ -232,7 +234,7 @@ export class TouchPad implements PadProvider {
   stickView(): StickView {
     const s = this.layout.stick;
     const [vx, vy] = this.output();
-    const on = this.stickPtr >= 0;
+    const on = this.stickPtr !== null;
     const c = on ? this.sc : { x: s?.cx ?? 0, y: s?.cy ?? 0 };
     const r = s?.radius ?? 1;
     return { active: on, cx: c.x, cy: c.y, x: c.x + vx * r, y: c.y + vy * r, vx, vy };
@@ -271,7 +273,7 @@ export class TouchPad implements PadProvider {
   /** Stick output -1..1 per axis: deadzone, full tilt at the radius, optionally 8-way. */
   output(): [number, number] {
     const s = this.layout.stick;
-    if (!s || this.stickPtr < 0) return [0, 0];
+    if (!s || this.stickPtr === null) return [0, 0];
     return stickOutput(this.sp.x - this.sc.x, this.sp.y - this.sc.y, s.radius, s.deadzone ?? 0.18, !!s.eightWay);
   }
 
@@ -381,10 +383,24 @@ export class TouchPad implements PadProvider {
       this.trace(e.type, e.pointerId, ...pos(e), e.target);
       this.cancel(e.pointerId);
     };
-    // touches: ids offset so they never meet a pointer id
+    // touches: each finger gets a small id of our own for as long as it's down, offset so it never meets a pointer
+    // id. (A Touch's identifier is any 32-bit number: iOS Safari counts up from a large seed and wraps negative.)
     const T = 1_000_000;
+    let nextTouch = 0;
+    const touchIds = new Map<number, number>();
     const each = (e: TouchEvent, f: (id: number, x: number, y: number) => void) => {
-      for (const t of Array.from(e.changedTouches)) f(T + t.identifier, ...pos(t));
+      const start = e.type === "touchstart";
+      const end = e.type === "touchend" || e.type === "touchcancel";
+      for (const t of Array.from(e.changedTouches)) {
+        let id = touchIds.get(t.identifier);
+        if (id === undefined) {
+          if (!start) continue;
+          id = T + (nextTouch++ % T);
+          touchIds.set(t.identifier, id);
+        }
+        f(id, ...pos(t));
+        if (end) touchIds.delete(t.identifier);
+      }
     };
     let moves = 0;
     const onTouchStart = (e: TouchEvent) => {
@@ -412,7 +428,9 @@ export class TouchPad implements PadProvider {
     };
     const stop = (e: Event) => e.preventDefault();
     const onHide = () => {
-      if (document.hidden) this.releaseAll();
+      if (!document.hidden) return;
+      this.releaseAll();
+      touchIds.clear();
     };
     const opts = { passive: false } as AddEventListenerOptions;
     const on: [EventTarget, string, EventListener, AddEventListenerOptions?][] = [
@@ -438,7 +456,10 @@ export class TouchPad implements PadProvider {
     else on.push([el, "touchstart", stop, opts], [el, "touchmove", stop, opts]);
     if (typeof document !== "undefined") on.push([document, "touchmove", stop, opts]);
     for (const [t, k, f, op] of on) t.addEventListener(k, f, op);
-    const blur = () => this.releaseAll();
+    const blur = () => {
+      this.releaseAll();
+      touchIds.clear();
+    };
     window.addEventListener("blur", blur);
     return () => {
       for (const [t, k, f] of on) t.removeEventListener(k, f);

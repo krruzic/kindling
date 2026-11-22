@@ -182,3 +182,20 @@ test("touch: holds() lists fingers held outside the controls (not on a button, n
   t.up(1);
   t.up(2);
 });
+
+test("touch: a pointer id of any sign takes the stick (iOS touch identifiers go negative)", () => {
+  for (const id of [-1967427532, -1, 0, 2147483647]) {
+    const { t } = pad();
+    t.down(id, 150, 200);
+    ok(t.stickView().active, `the stick is held (id ${id})`);
+    t.move(id, 200, 200);
+    near(t.output()[0], 1, 1e-9, `full tilt (id ${id})`);
+    // (and a second finger there is still a palm, not a second stick)
+    t.down(id + 7, 160, 210);
+    t.move(id + 7, 100, 210);
+    near(t.output()[0], 1, 1e-9, `the first finger keeps it (id ${id})`);
+    t.up(id);
+    eq(t.output(), [0, 0], `let go (id ${id})`);
+    ok(!t.stickView().active);
+  }
+});
