@@ -45,6 +45,13 @@ test("families: odd-device profiles", () => {
   eq(profileFor({ id: "Nintendo Wii U GameCube Adapter Port 1", mapping: "standard" }).id, "standard");
   eq(profileFor({ id: "Switch 2 BT GC", mapping: "" }).id, "switch2_bt_gc");
   eq(profileFor({ id: "Pro Controller (Vendor: 057e Product: 2069)", mapping: "" }).id, "switch2_usb_pro");
+  // (the NSO GameCube pad on raw USB: its own layout, not the Mayflash adapter's its name would match)
+  const nso = profileFor({ id: "Nintendo Nintendo GameCube Controller (Vendor: 057e Product: 2073)", mapping: "" });
+  eq(nso.id, "switch2_usb_gc");
+  eq(nso.stick.y.invert, true);
+  eq(String(nso.buttons.south), "1");
+  eq(String(nso.buttons.west), "0");
+  eq(profileFor({ id: "057e-2073-Nintendo GameCube Controller", mapping: "" }).id, "switch2_usb_gc");
   eq(profileFor({ id: "Xbox 360 Controller (XInput STANDARD GAMEPAD)", mapping: "standard" }).id, "standard");
 });
 

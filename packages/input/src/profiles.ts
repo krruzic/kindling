@@ -1,7 +1,7 @@
 // Profiles: how a browser Gamepad's raw buttons and axes map onto the canonical PadButtons, matched by Gamepad id.
 // Standard-mapping pads need no profile (the browser already orders their buttons); the built-ins cover the odd
 // devices couch players actually own: Mayflash GameCube adapters in PC mode, Linux uinput GameCube drivers
-// (wii-u-gc-adapter), Switch 2 GameCube / Pro pads over Bluetooth and a Switch 2 Pro on hid-generic (raw USB).
+// (wii-u-gc-adapter), Switch 2 GameCube / Pro pads over Bluetooth and on hid-generic (raw USB).
 // All data: a game can prepend its own (matched first) without code.
 import type { PadButton, PadFamily } from "./types.ts";
 import { STANDARD_BUTTONS } from "./types.ts";
@@ -118,6 +118,29 @@ export const BUILTIN_PROFILES: Profile[] = [
       ...dpad(8, 9, 10, 11),
     },
     axisButtons: { lt: { axis: 2, min: -1, max: 1 }, rt: { axis: 5, min: -1, max: 1 } },
+  },
+  {
+    // The NSO GameCube pad (Switch 2) on hid-generic (raw USB, not paired over WebHID): its report's own button
+    // bits in order, the sticks' Y up-positive and short of the axis's ends. L / R only as their end clicks (the
+    // analog travel isn't in the report's axes). Before mayflash_gc: its id says "GameCube" too.
+    id: "switch2_usb_gc",
+    match: ["product: 2073", "057e-2073"],
+    family: "gc",
+    rawOnly: true,
+    stick: { x: { axis: 0, scale: 1.6 }, y: { axis: 1, invert: true, scale: 1.6 } },
+    cstick: { x: { axis: 2, scale: 1.75 }, y: { axis: 3, invert: true, scale: 1.75 } },
+    buttons: {
+      west: [0],
+      south: [1],
+      north: [2],
+      east: [3],
+      rt: [4],
+      rb: [5],
+      start: [6],
+      lt: [12],
+      lb: [13],
+      ...dpad(11, 8, 10, 9),
+    },
   },
   {
     id: "mayflash_gc",
